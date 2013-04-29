@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="GB2312"?>
+<scripts><![CDATA[
+_JUICECLASSES['WAMenuX'] = WAMenuX;
+function WAMenuX() {   
+   this.init = function($dom) {   
+     var domMenus = $dom.children;
+     var objItems = [];
+     for (var i=0; i<domMenus.length; i++) {
+       objItems.push(createItem(domMenus[i]));
+     }
+     $dom.innerHTML = "";
+     for (var i=0; i<objItems.length; i++) {
+       objItems[i].attachEvent("onmouseover", doMouseOverItem);
+       objItems[i].attachEvent("onmouseout", doMouseOutItem);
+       objItems[i].attachEvent("onclick", doClickItem);
+       $dom.insertAdjacentElement("beforeEnd", objItems[i]);
+     }
+   };
+
+   function doClickItem() {
+     var d = event.srcElement;
+     d = __getReal(d, "tagName", "SPAN");
+     var e = d.getAttribute("tt.event");
+     eval(e);
+   }
+
+   function doMouseOverItem() {
+     var d = event.srcElement;
+     d = __getReal(d, "tagName", "SPAN");     
+     d.style.backgroundColor = "#EDF3E1";
+   }
+
+   function doMouseOutItem() {
+     var d = event.srcElement;
+     d = __getReal(d, "tagName", "SPAN");     
+     d.style.backgroundColor = "transparent";
+   }
+
+   //生成一个菜单
+   function createItem($span) {
+      var itemName = $span.getAttribute("name");
+      var itemIcon = $span.getAttribute("img");
+      if (itemIcon==null) {
+        itemIcon = "/img/juice/xm.gif";
+      }
+      if (itemIcon.indexOf("/")==0) {
+        itemIcon = _c + itemIcon;
+      }
+      var itemEvent = $span.getAttribute("event");
+      var sb = [];
+      sb.push("<span tt.event=\"" + itemEvent + "\" style='cursor:hand;border:1 solid #cccccc;padding:3px;margin-left:5px'>");       
+      sb.push("<img src=" + itemIcon + " align=absmiddle>");
+      sb.push(itemName);
+      sb.push("</span>");
+      return __createElementByHTML(sb.join(""));
+   }
+}
+  ]]></scripts>

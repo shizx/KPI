@@ -1,0 +1,875 @@
+<?xml version="1.0" encoding="GB2312"?>
+<scripts><![CDATA[
+__loadCss("calendar.css");
+var CALT_MONTHS  = ["1","2","3","4","5","6","7","8","9","10","11","12"];
+var CALT_WEEKS   = ["周日","周一","周二","周三","周四","周五","周六"];
+var CALT_MONTH_LENGTH        = [31,28,31,30,31,30,31,31,30,31,30,31];
+var CALT_LEAP_MONTH_LENGTH   = [31,29,31,30,31,30,31,31,30,31,30,31];
+var CALT_DATE_FORMAT = {"A":"$Y-$M-$D","B":"$Y年$M月$D日", "C":"$Y/$M/$D"};
+
+
+var CALT_sMonthSelect = "";
+var CALT_colTmp = [];
+
+  CALT_colTmp.push("<table width=100% cellpadding=0 cellspacing=2><tr height=12>");
+	for (var i = 0; i < CALT_MONTHS.length; i++) {
+	  CALT_colTmp.push("<td width=20 align=center monthValue=" + (i+1) + " class=Comp_Calendar_Month>" + CALT_MONTHS[i] + "</td>");
+	}
+	CALT_colTmp.push("</table>");
+	CALT_sMonthSelect = CALT_colTmp.join("");
+
+  CALT_colTmp = [];
+  var CALT_week_cells = "";
+  for (var i = 0; i < CALT_WEEKS.length; i++) {
+    CALT_colTmp.push("<td nowrap class=CALW>" + CALT_WEEKS[i] + "</td>");
+  }
+	CALT_week_cells = CALT_colTmp.join("");
+
+	CALT_colTmp = [];
+	var CALT_day_cells = "";
+	CALT_colTmp.push("<tbody id=Comp_CALTendar_days>");
+  for (var i = 0; i < 6; i++) {
+    CALT_colTmp.push("<tr>");
+    for (var j = 0; j < 7; j++) {
+      CALT_colTmp.push("<td align=center></td>");
+    }
+    CALT_colTmp.push("</tr>");
+  }
+  CALT_colTmp.push("</tbody>");
+  CALT_day_cells = CALT_colTmp.join("");
+  CALT_colTmp = null;
+var CALT_Comp_Cal_Html = "<div onmousedown='event.cancelBubble=true;'  style='position:absolute; left:0px; top:0px; z-index:517; width:200px;height:100px;padding:2px;filter: DropShadow(Color=#777777, OffX=2, OffY=2, Positive=45);'>" +
+            "<table cellspacing=0 cellpadding=0 bgcolor=white class=Comp_Calendar_date_td2><tr bgcolor=#336699>" +
+  	        "<td width=300 valign=top style=\"border-color: #89ACF0 #485984 #485984 #89ACF0;border-style: solid;border-width:1 0 0 1\">" + CALT_sMonthSelect + "</td>" +
+  	        "<td valign=middle style=\"padding:2px;border-color: #89ACF0 #485984 #485984 #89ACF0;border-style: solid;border-width:1 0 0 0\"><table cellspacing=0 cellpadding=0><tr><td title=\"使用上下左右键可以修改年份\" style=\"background-color:white;border-color:black;border-style: solid;border-width:1 0 1 1\"><input type=text name=cal_year class=Comp_Calendar_Year style=\"width:23px\"></td>" +
+            "<td style=\"cursor:hand;background-color:#eeeeee;border-color:black;border-style: solid;border-width:1 1 1 0;padding-left:2px;padding-right:3px\"><img src=" + _c + "/img/calendar/small_arrow_down.gif></td></tr></table>" +
+            "</td></tr>" +
+            "<tr ><td colspan=3>" +
+            "<table cellspacing=0 cellpadding=1 id=Comp_Calendar_Month width=200><td colspan=7 bgcolor=black></td><tr bgcolor=#FFFFCC>" + CALT_week_cells + "</tr><tr><td colspan=7 bgcolor=black></td></tr>" +
+            "" + CALT_day_cells +
+            "<tr><td colspan=2 class=Comp_Calendar_today style=\"cursor:hand\">" +
+            "</td><td colspan=5 ><b>今天：<span></span></b></td></tr>" +
+            "</table>" +
+            "<table width=100% cellspacing=0><tr><td style='background-color:#FFFFCC;border-color:black;border-style: solid;border-width:1 0 0 0;'>&nbsp;" +
+            "时间：<input type=text class=Comp_Calendar_Time name=cal_time_hour>时" +
+            "<input type=text class=Comp_Calendar_Time name=cal_time_mins>分" + "</td><td style='background-color:#FFFFCC;border-color:black;border-style: solid;border-width:1 0 0 0' align=right><input type=button value=确定 class=Comp_Calendar_Confirm></td></tr></table>" +
+            "<table width=100% ><tr style='background-color:#eeeeee'><td align=center><span style='cursor:hand' id=domClear style='color:#800000' >*清除日期</span></td></tr></table></td></tr></table></div>";
+
+_JUICECLASSES['CalendarTime'] = CalendarTime;
+/**
+ * 日历组件
+ * @author: TANTOM
+ */
+function CalendarTime() {
+
+  this.hide = hide;
+  this.perform = perform;
+
+  this.init = init;
+
+  function init($dom) {
+  	_dom = $dom;
+  	perform(_dom);
+  };
+
+	var _dom = null;
+	var _I_FORMAT = "B"; //默认的日期格式
+
+	var _dateToday = new Date();
+  var _objPanel = null;
+  var _domPanel = null;
+  var _objYearPanel = null;
+  var _domValueFor = null;
+  var _dateShow = null;
+  var _domMonthContainer = null;
+  var _domTmp = null;
+  var _domYearSelect = null;
+  var _domYear = null;
+  var _domMBgContainer = null;
+  var _domDaysContainer = null;
+  var _domToday = null;
+  var _domUseToday = null;
+  var _domLastMonth = null;
+  var _td_i = null;
+  var _domMonths = null;
+  var _domConfirm = null;
+  var _domHour = null;
+  var _domMinutes = null;
+  var _domTime = null;
+  var _domClear = null;
+
+  window.attachEvent("onunload", clear);
+  function clear() {
+     _objPanel.getNode().removeNode(true);
+   _objYearPanel.getNode().removeNode(true);
+	 _dom = null;
+	 _I_FORMAT = null;
+
+	_dateToday = null;
+  _objPanel = null;
+   _domPanel = null;
+   _objYearPanel = null;
+   _domValueFor = null;
+   _dateShow = null;
+   _domMonthContainer = null;
+   _domTmp = null;
+   _domYearSelect = null;
+   _domYear = null;
+   _domMBgContainer = null;
+   _domDaysContainer = null;
+   _domToday = null;
+   _domUseToday = null;
+   _domLastMonth = null;
+   _td_i = null;
+   _domMonths = null;
+   _domConfirm = null;
+   _domHour = null;
+   _domMinutes = null;
+   _domTime = null;
+   _domClear = null;
+
+  }
+
+  /**
+   * 用户点选择今天
+   * @return void
+   */
+  function clickToday() {
+    _dateShow.setTime(_dateToday.getTime());
+    if (_domLastMonth.innerText*1-1!=_dateShow.getMonth()) {
+      _domLastMonth.className = "Comp_Calendar_Month";
+      _domMonths[_dateShow.getMonth()].className = "Comp_Calendar_Month_Selected";
+      _domLastMonth = _domMonths[_dateShow.getMonth()];
+    }
+    _domYear.value = _dateShow.getFullYear();
+    paintDays();
+
+    if (!_isTimeMode) {
+
+      if (!checkYearDate(_dateToday)) {
+        return;
+      }
+    	_domValueFor.value = format(_dateToday);
+    	hide();
+  	}
+  }
+
+  var _bInit = false;
+  var _isTimeMode = false;
+  var _ex = 0;
+  var _ey = 0;
+  function doClear() {
+    _domValueFor.value = "";
+    hide();
+  }
+
+  function perform($domPop) {
+
+  	/** 是否需要显示时间的选择 */
+  	_isTimeMode = $domPop.getAttribute("tt.time")=="true"?true:false;
+    if (!_bInit) {
+      _objPanel = new JPanel();
+      _objYearPanel = new JPanel();
+
+      _domPanel = _objPanel.getNode();
+
+      _domPanel.innerHTML = CALT_Comp_Cal_Html;
+
+      _domMonthContainer = _domPanel.children[0].children[0].children[0].rows[0].children[0].children[0];
+
+      _domYear = _domPanel.children[0].children[0].children[0].rows[0].children[1].children[0].rows[0].cells[0].children[0];
+      _domYearSelect = _domYear.parentElement.nextSibling;
+      _domMBgContainer = _domPanel.children[0].children[0].children[0].rows[1].children[0].children[0];
+      _domDaysContainer = _domMBgContainer.children[1];
+      _domToday = _domMBgContainer.children[2].children[0].children[1].children[0].children[0];
+      _domUseToday = _domToday.parentElement.parentElement.previousSibling;
+
+      _domTime = _domUseToday.parentElement.parentElement.parentElement.nextSibling;
+      _domHour = _domTime.rows[0].cells[0].children[0];
+      _domMinutes = _domTime.rows[0].cells[0].children[1];
+      _domConfirm = _domTime.rows[0].cells[1].children[0];
+
+      _domYearSelect.attachEvent("onmousedown", yearSelect);
+      _domYear.attachEvent("onkeydown", yearKeyControl);
+      _domYear.attachEvent("onclick", yearClickControl);
+      _domYear.attachEvent("onfocus", yearClickControl);
+
+      _domUseToday.attachEvent("onmousedown", clickToday);
+      _domMonths = _domMonthContainer.children[0].rows[0].cells;
+      _domClear = _domPanel.all.domClear;
+
+      for (var i=0; i<12; i++) {
+        _domMonths[i].attachEvent("onmouseover", overMonth);
+        _domMonths[i].attachEvent("onmouseout", outMonth);
+        _domMonths[i].attachEvent("onmousedown", clickMonth);
+      }
+
+      //初始化日期的鼠标事件
+      for (var i=0; i <=6; i++) {
+        for (var j=0; j<=5; j++) {
+      	  _td_i = _domDaysContainer.rows(j).cells(i);
+          _td_i.attachEvent("onmouseover", overDay);
+          _td_i.attachEvent("onmouseout", outDay);
+          _td_i.attachEvent("onclick", clickDay);
+        }
+      }
+
+      _domToday.innerText = format(_dateToday);
+
+      _domConfirm.attachEvent("onclick", setTime);
+      _domClear.attachEvent("onclick", doClear);
+      _bInit = true;
+    }// init finish
+
+
+
+    /**
+     * 如果用户没有提供放值的对象，则自动使用其前一个input类型的对象
+     */
+    var valueFor = $domPop.getAttribute("TT.valueFor");
+
+    if (valueFor==null) {
+      _domValueFor = $domPop.previousSibling;
+      /**
+       * 如果还没有就是直接显示日历的模式
+       */
+      var sTmp = _domValueFor.tagName;
+      if (sTmp==null) {
+        _domValueFor = _domValueFor.previousSibling;
+      }
+    }else {
+      _domValueFor = document.getElementById(valueFor);
+    }
+
+    _domClear.style.display = "";
+    if (_domValueFor.getAttribute("tt.readonly")!=null) {  //不允许删除
+      _domClear.style.display = "none";
+    }
+
+
+
+
+    /** 获得日期的格式 */
+    var calType = $domPop.getAttribute("TT.calType");
+    if (calType!=null) {
+      setFormat(calType);
+    }
+
+    var sDate = _domValueFor.value;
+    if (sDate.length==0) {
+      _dateShow = new Date();
+      _dateShow.setMinutes(0);
+    }else {
+      _dateShow = parseTime(sDate);
+    }
+
+    if (_domLastMonth!=null) {
+      _domLastMonth.className = "Comp_Calendar_Month";
+    }
+
+    _domLastMonth = _domMonths[_dateShow.getMonth()*1];
+    _domLastMonth.className = "Comp_Calendar_Month_Selected";
+    _domYear.value = _dateShow.getFullYear();
+    _domHour.value = _dateShow.getHours();
+    _domMinutes.value = _dateShow.getMinutes();
+    paintDays();
+
+
+    if (_isTimeMode) {
+    	_domTime.style.display = "";
+    }else {
+    	_domTime.style.display = "none";
+    }
+
+    /** 如果是juice的渲染模式 */
+    _ex = window.event.x;
+    _ey = window.event.y;
+        
+    _objPanel.setVis(true);
+    if ($domPop.getAttribute("tt.impl")==null) {
+      setPosA();            
+    }else {
+      _domPanel.style.zIndex = 1;
+      _domPanel.style.position = "static";
+      _domPanel.children[0].style.position = "static";
+      _domPanel.children[0].style.zIndex = 1;
+      _objPanel.setVis(true);
+      $domPop.insertAdjacentElement("beforeEnd", _domPanel);      
+    }    
+    setTimeout(attEvt, 10); 
+  }
+  
+  function attEvt() {
+    document.body.attachEvent("onmousedown", bodyMouseDown);
+  }
+
+  function setPosA() {
+      var pos = new top.Position(_ex, _ey)
+      pos.x = pos.x + document.body.scrollLeft;
+      pos.y = pos.y + document.body.scrollTop;
+      _domPanel.style.left = pos.x;
+      _domPanel.style.top = pos.y;
+      
+      var p = __getPos(_domPanel);
+      var r = __getRect(_domPanel.children[0]);
+      
+      if (r.h>175&&r.h<200) {
+        r.h = 163;
+      }
+      if (r.h>250&&r.h<280) {
+        r.h = 201;
+      }
+      if (r.h>300&&r.h<320) {
+        r.h = 221;
+        r.w = r.w - 20;        
+      }
+
+      if (p.x + r.w > (document.body.clientWidth-18)) {
+        _domPanel.style.left = p.x - r.w;
+      }
+      
+      if (p.y + r.h > document.body.clientHeight) {
+        _domPanel.style.top = p.y - r.h;
+      }
+
+      killAction();
+      _domPanel.style.visibility = "visible";
+  }
+
+  function killAction() {
+    __killSelects(_domPanel, __getRect(_domPanel.children[0]));
+  }
+
+  function setTime() {
+    /**
+     * 检查时间是否正确
+     */
+    if (_domHour.value.length==0) {
+      _domHour.value = 0;
+    }
+
+    if (_domMinutes.value.length==0) {
+      _domMinutes.value = 0;
+    }
+
+    if (!__isInt(_domHour.value)) {
+    	alert("时间请输入数字");
+    	return;
+    }
+
+    if (!__isInt(_domMinutes.value)) {
+    	alert("分钟请输入整数");
+    	return;
+    }
+
+    var h = _domHour.value * 1;
+    if (h<0 || h>23) {
+      alert("小时数有错误");
+      return;
+    }
+
+    var m = _domMinutes.value * 1;
+    if (m<0 || m>59) {
+      alert("分钟数有错误");
+      return;
+    }
+
+
+    _dateShow.setHours(0);
+    _dateShow.setMinutes(0);
+    _dateShow.setHours(h);
+    _dateShow.setMinutes(m);
+
+    if (!checkYearDate(_dateShow)) {
+      return;
+    }
+
+    _domValueFor.value = format(_dateShow);
+    hide();
+  }
+
+  function checkYearDate(d) {
+    var y = d.getYear();
+    if (y<100) y+=1900;
+    if (y<1900||y>=2080) {
+      alert("日期的范围必须在1900与2080之间，请重新设定");
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * 年份的上下方向控制
+   * @return void
+   */
+  function yearKeyControl() {
+    window.event.returnValue = false;
+    var k = window.event.keyCode;
+    var y = _domYear.value;
+
+    if (k==13) { //回车
+
+      if (!checkYearDate(_dateShow)) {
+        return;
+      }
+      _domValueFor.value = format(_dateShow);
+      hide();
+    }
+
+    if (k==37) { //左
+      _domYear.value = y*1 - 10;
+    }else if (k==38) { //上
+      _domYear.value = y*1 + 1;
+    }else if (k==39) { //右
+      _domYear.value = y*1 + 10;
+    }else if (k==40) { //下
+      _domYear.value = y*1 - 1;
+    }else if ((k>=48&&k<58)||(k>=96&&k<106)) {
+      //按下的数目
+		  var num;
+			if(k >= 48 && k < 58) {
+				num = k - 48;
+		  }else if (k >= 96 && k < 106) {
+				num = k - 96;
+			}
+
+      y = String(y) + String(num);
+      y = y.substr(1,4);
+
+      if (y.substr(0, 1)=="0") {
+        y = "1" + y.substr(1, 4);
+      }
+
+      _domYear.value = y;
+    }else {
+      return;
+    }
+
+    var iDays = monthLength(_dateShow.getMonth(), _domYear.value);
+    if (_dateShow.getDate()>iDays) {
+      _dateShow.setDate(iDays);
+    }
+
+    _dateShow.setYear(_domYear.value);
+
+    paintDays();
+    setSelection(0,3);
+  }
+
+  /**
+   * 鼠标点中年份
+   * @return void
+   */
+  function yearClickControl() {
+    setSelection(0,3);
+    _objYearPanel.setVis(false);
+    //__killSelects(_domPanel.children[0]);
+  }
+
+  //选择一短指定长度的文字
+  function setSelection($form, $end) {
+    var fixPos = _domYear.value.length;
+	  var input_range = _domYear.createTextRange();
+		input_range.moveStart("character", $form);
+		input_range.moveEnd("character", $end);
+  	input_range.expand("character");
+	  input_range.select();
+  }
+
+  /**
+   * 设置日期格式
+   * @param iFromat 日期的参数 0,1,2
+   * @return void
+   */
+  function setFormat($iFormat) {
+    _I_FORMAT = $iFormat;
+  }
+
+  /**
+   * 是否润年
+   * @return boolean
+   */
+  function isLeapYear($year) {
+    return (($year%4 == 0) && (($year%100 != 0) || ($year%400 == 0)));
+  }
+
+  /**
+   * 月的长度
+   * @return boolean
+   */
+  function monthLength($month, $year) {
+    return isLeapYear($year) ? CALT_LEAP_MONTH_LENGTH[$month] : CALT_MONTH_LENGTH[$month];
+  }
+
+  /**
+   * 显示年份的选择
+   * @return void
+   */
+  function yearSelect() {
+    CALT_colTmp = [];
+    CALT_colTmp.push("<table onmousedown=\"event.cancelBubble=true\" bgcolor=#FFFFFF cellspacing=0 cellpadding=0 style=\"border: 1px solid #000000;\">");
+    var y = _domYear.value*1;
+    var c = "";
+    for (var i=y-4; i<y+5; i++) {
+      c = i==y?"Comp_Calendar_YearSelect_Selected":"Comp_Calendar_YearSelect";
+      CALT_colTmp.push("<tr><td class=" + c + ">" + i + "</td></tr>");
+    }
+    CALT_colTmp.push("</table>");
+
+    _objYearPanel.getNode().innerHTML = CALT_colTmp.join("");
+    CALT_colTmp = null;
+    var domTmp = _objYearPanel.getNode().children[0];
+    for (var i=0; i<9; i++) {
+      domTmp.rows[i].cells[0].attachEvent("onmouseover", overYear);
+      domTmp.rows[i].cells[0].attachEvent("onmouseout", outYear);
+      domTmp.rows[i].cells[0].attachEvent("onmousedown", selectYear);
+    }
+
+    _objYearPanel.getNode().style.left = window.event.x;
+    _objYearPanel.getNode().style.top = window.event.y;
+
+    _objYearPanel.setVis(true);
+    //__killSelects(_domPanel.children[0]);
+  }
+
+  /**
+   * 画出日子
+   * @return void
+   */
+  function paintDays() {
+
+    _domMBgContainer.className = "Comp_Calendar_m" + (_dateShow.getMonth()*1+1);
+
+    weekFirstDay = new Date(_dateShow.getFullYear(), _dateShow.getMonth(), 1).getDay();
+    monthLastDay = monthLength(_dateShow.getMonth(), _dateShow.getFullYear());
+
+	  var row_i, col_i, _td_i;
+	  var d=_dateShow.getDate();
+	  //清空月历
+	  for (var i=0;i<6; i++) {
+		  for (var j=0; j<7; j++) {
+			  var _td_i = _domDaysContainer.rows(i).cells(j);
+			  _td_i.innerText = "";
+			  _td_i.className = "";
+		  }
+	  }
+	  for (var i = 1; i <= monthLastDay; i++) {
+		  row_i = Math.floor((i + weekFirstDay - 1) / 7);
+		  col_i = ((i + weekFirstDay) - 1) % 7;
+		  _td_i = _domDaysContainer.rows(row_i).cells(col_i);
+		  _td_i.innerText = i;
+      _td_i.className = i!=d?"Comp_Calendar_day":"Comp_Calendar_selected_day";
+	  }
+
+  }
+
+  /**
+   * 关闭日历，当鼠标在日历外按下时
+   * @return void;
+   */
+  function bodyMouseDown() {
+    event.cancelBubble = true;
+    hide();
+  }
+
+  function selectDate($day) {
+	  for (var i=0;i<6; i++) {
+		  for (var j=0; j<7; j++) {
+			  var _td_i = _domDaysContainer.rows(i).cells(j);
+        _td_i.className = _td_i.innerText*1!=$day?"Comp_Calendar_day":"Comp_Calendar_selected_day";
+		  }
+	  }
+  }
+
+  /**
+   * 隐藏日历
+   * @return void
+   */
+  function hide() {
+    __releaseSelects();
+    document.body.detachEvent("onmousedown", bodyMouseDown);
+    _objPanel.setVis(false);
+    _objYearPanel.setVis(false);
+
+    //清空月历
+    for (var i=0;i<6; i++) {
+      for (var j=0; j<7; j++) {
+        var _td_i = _domDaysContainer.rows(i).cells(j);
+        _td_i.innerText = "";
+        _td_i.className = "";
+      }
+    }
+  }
+
+  /**
+   * 下拉年份选择
+   * @return void
+   */
+  function selectYear() {
+    var obj = window.event.srcElement;
+    _domYear.value = obj.innerText;
+
+    var iDays = monthLength(_dateShow.getMonth(), _domYear.value);
+
+    if (_dateShow.getDate()>iDays) {
+      _dateShow.setDate(iDays);
+    }
+    _dateShow.setYear(_domYear.value);
+    paintDays();
+    _objYearPanel.setVis(false);
+    //__killSelects(_domPanel.children[0]);
+  }
+
+  /**
+   * 用户选择了一个月
+   * @return void
+   */
+  function clickMonth() {
+    var obj = window.event.srcElement;
+
+    if (obj.className=="Comp_Calendar_Month_Selected") {
+      return;
+    }
+
+    var monthSelected = obj.innerText*1-1;
+    _domLastMonth.className = "Comp_Calendar_Month";
+    _domLastMonth = _domMonths[monthSelected];
+    _domLastMonth.className = "Comp_Calendar_Month_Selected";
+
+    var iDays = monthLength(monthSelected, _dateShow.getFullYear());
+
+    if (_dateShow.getDate()>iDays) {
+      _dateShow.setDate(iDays);
+    }
+
+    _dateShow.setMonth(monthSelected);
+    paintDays();
+  }
+
+
+  /**
+   * 用户选择一个日期
+   * @return void
+   */
+  function clickDay() {
+    var obj = window.event.srcElement;
+    var iDay = obj.innerText;
+    if (iDay=="") {
+      return;
+    }
+    iDay = iDay*1;
+
+    _dateShow.setDate(iDay);
+    selectDate(iDay);
+    if (!_isTimeMode) { //如果不是时间模式直接输出值
+
+    if (!checkYearDate(_dateShow)) {
+      return;
+    }
+    	_domValueFor.value = format(_dateShow);
+    	hide();
+  	}else {
+  		_domHour.focus();
+  		_domHour.select();
+  	}
+  }
+
+  // ---------------------------------------- 鼠标移动控制 ------------------------------------
+  var _old_bg;
+  var _old_cl;
+  //鼠标放到日期
+  function overDay() {
+    obj = window.event.srcElement;
+    if (obj.innerHTML == "")
+      return;
+
+    _old_bg = obj.currentStyle.backgroundColor;
+    _old_cl = obj.currentStyle.color;
+
+    obj.style.backgroundColor = "#336699";
+    obj.style.color = "#FFFFFF";
+
+    obj.title = "当前将选择的日期为：" + formatString(_dateShow.getFullYear(), _dateShow.getMonth()+1, obj.innerText, _domHour.value, _domMinutes.value);
+  }
+
+  //鼠标离开日期
+  function outDay() {
+    obj = window.event.srcElement;
+    obj.style.backgroundColor = _old_bg;
+    obj.style.color = _old_cl;
+  }
+
+  var _oldM_class;
+
+  //鼠标进入月份
+  function overMonth() {
+    obj = window.event.srcElement;
+
+    _oldM_class = obj.className;
+    obj.className = "Comp_Calendar_Month_Over";
+  }
+
+  //鼠标离开月份
+  function outMonth() {
+    obj = window.event.srcElement;
+    if (obj.className=="Comp_Calendar_Month_Selected") {
+      return;
+    }
+
+    obj.className = _oldM_class;
+  }
+
+  //鼠标进入年
+  function overYear() {
+    obj = window.event.srcElement;
+
+    _oldM_class = obj.className;
+    obj.className = "Comp_Calendar_YearSelect_Over";
+  }
+
+  //鼠标离开年
+  function outYear() {
+    obj = window.event.srcElement;
+    obj.className = _oldM_class;
+  }
+  /**
+   * 根据指定的日期格式获得
+   * @param dateObj
+   * @return String
+   */
+  function format($dateObj) {
+    var d = $dateObj.getDate();
+        d = "0" + d;
+        d = d.substr(d.length-2, d.length);
+    var m = $dateObj.getMonth()*1+1;
+        m = "0" + m;
+        m = m.substr(m.length-2, m.length);
+    var y = $dateObj.getFullYear();
+
+    var h = "0" + $dateObj.getHours();
+        h = h.substr(h.length-2, h.length);
+    var min = "0" + $dateObj.getMinutes();
+        min = min.substr(min.length-2, min.length);
+
+    return formatString(y,m,d, h, min);
+
+  }
+
+  /**
+   * 格式化字串的日
+   * @return 日期
+   */
+  function formatString($year, $month, $day, $hour, $minute) {
+    var s = CALT_DATE_FORMAT[_I_FORMAT];
+
+    s = s.replace("$Y", $year);
+    s = s.replace("$M", $month);
+    s = s.replace("$D", $day);
+
+    if (_isTimeMode) {
+    	s = s + " " + $hour + ":" + $minute;
+  	}
+    return s;
+  }
+
+  /**
+   * 解析日期，能根据用户指定的格式反向解析出日期的实例
+   * @param sDate 日期字串 如 2003-1-1 2004年3月4日 2004/3/3
+   * @return Date
+   */
+  function parse($sDate) {
+    var s = CALT_DATE_FORMAT[_I_FORMAT];
+
+    var reg = /\$[^\$]*/gi;
+    var regA = /^\$(.)(.*)/i;
+    var ary = s.match(reg);
+    var len = ary.length;
+    var tmp = null;
+    var y,m,d;
+    var regTmp = [];
+    var hmOrder = [];
+    for (var i=0; i<len; i++) {
+      tmp = ary[i].match(regA);
+      if (tmp[1]=="Y") {
+        regTmp.push("(\\d{4})" + tmp[2]);
+      }else if (tmp[1]=="M") {
+        regTmp.push("(\\d{2})" + tmp[2]);
+      }else if (tmp[1]=="D") {
+        regTmp.push("(\\d{2})" + tmp[2]);
+      }
+      hmOrder[tmp[1]] = i;
+    }
+
+    var regParser = new RegExp(regTmp.join(""));
+    var aryParse = $sDate.match(regParser);
+
+    len = aryParse.length;
+
+    y = aryParse[hmOrder["Y"]+1];
+    m = aryParse[hmOrder["M"]+1]-1;
+    d = aryParse[hmOrder["D"]+1];
+    return new Date(y,m,d);
+  }
+
+  function parseTime($sDateTime) {
+    var len = _I_FORMAT=="A"||_I_FORMAT=="C"?10:11;
+
+    var d = $sDateTime.substr(0,len);
+
+    var dd = parse(d);
+
+    dd.setHours(0);
+    dd.setMinutes(0);
+
+    var h = $sDateTime.substr(len+1,2);
+    var m = $sDateTime.substr(len+4,2);
+
+    dd.setHours(h);
+    dd.setMinutes(m);
+
+    return dd;
+  }
+
+  this.isMoreDate = isMoreDate;
+
+  function isMoreDate($dateA, $dateB, $year) {
+    var dA = parse($dateA);
+    var dB = parse($dateB);
+    if (dA.getTime()>=dB.getTime() + $year*365*1000*60*60*24) {
+      return true;
+    }
+    return false;
+  };
+}
+
+/**
+ * 获得当前的日期字串
+ */
+function __getNowDateTime() {
+  var objDate = new Date();
+  var d = objDate.getDate();
+      d = "0" + d;
+      d = d.substr(d.length-2, d.length);
+  var m = objDate.getMonth()*1+1;
+      m = "0" + m;
+      m = m.substr(m.length-2, m.length);
+  var y = objDate.getFullYear();
+
+  var h = "0" + objDate.getHours();
+      h = h.substr(h.length-2, h.length);
+  var min = "0" + objDate.getMinutes();
+      min = min.substr(min.length-2, min.length);
+  var str = y + "年" + m + "月" + d + "日" + " " + h + ":" + min;
+  return str;
+}
+
+/**
+ * 比较两个日期是否在一定范围内
+ */
+function __isMoreDate($dateA, $dateB, $year) {
+  if (window.STATICCLASS_CALENDAR==null) {
+    window.STATICCLASS_CALENDAR = new CalendarTime();
+  }
+  return window.STATICCLASS_CALENDAR.isMoreDate($dateA, $dateB, $year);
+}
+]]></scripts>

@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="GB2312"?>
+<scripts><![CDATA[
+ var Comp_QueryTab_Tab_Html = "<table width=100% cellspacing=0 cellpadding=0><tr><td><div style='width:0px;margin-bottom:-2px'><div style='display:none'></div></div></td></tr><tr><td style='border-width:1px;border-style:solid;border-color:#dddddd;padding:0px;margin-top:-3px'></td></tr></table>";
+
+ var Comp_QueryTab_Tab = "<table align=left style=\"margin-bottom:0px;background-image:url('" + _c + "/img/wtb.gif');background-repeat:repeat-x;\" border=0 cellspacing=0 cellpadding=0 ><tr><td style='height:3px' style='padding-left:0px'><img src=" + _c + "/img/tab/1a.gif></td><td style=\"background-image:url('" + _c + "/img/tab/2a.gif');background-repeat:repeat-x;\"></td><td><img src=" + _c + "/img/tab/3a.gif></td></tr><tr ><td style=\"width:4px;background-image:url('" + _c  + "/img/tab/4.gif');background-repeat:repeat-y;\"></td><td style='padding:3px;cursor:hand' nowrap id=domTitle onselectstart='return false'></td><td style=\"width:8px;background-image:url('" + _c + "/img/tab/6b.gif');background-repeat:repeat-y;\"><img src=" + _c +"/img/blank.gif width=8></td></tr></table>"
+
+/**
+ * Tab风格显示组件，以指定的名称做标识，自动查找可能的内容
+ * 如果Tab的组件属性TT.tab = "MyBanana"，那么组件会自动查找MyBanana为ID的所有Dom对象
+ * 做为其Tab的显示内容，而子的Tab显示的内容为其指子的TT.tabTitle，这样做的好处为，用
+ * 户可以运行时自动添加相同名字的子tab名即可，程序会自动处理
+ */
+_JUICECLASSES['QueryTab'] = QueryTab;
+function QueryTab() {
+  var _dom = null;
+  var _tab = null;
+  var _subs = null; //可能的子集合
+  var _tabContainer = null;
+  var _subContainer = null;
+  var _hmTabs = [];
+  var _lastActiveUuid = null;
+  var _iTab = 0;
+  var _attr_padding = 2;
+  var _beforeEvent = null;
+  var _lastAdd = null;
+  var _l = 0; //总可用宽度
+  var _cl = 0; //当前正到达的宽度
+  var _tabTable = null;
+  var _lCon = null;
+  var _allowMultiLine = false;
+  var _multiFix = 0; //当在多行显示时如果有特殊的增量需要指明，如角色中在Tab生成后会计算其下权限数且写进Tab当中，会造成Tab扩大，这时在计算多层时就需要先预计
+
+/** 获得所有可用的模型 */
+  this.getModels = getModels;
+
+  function getModels() {
+    var tmp = [];
+    for (var i in _hmTabs) {
+      if (_hmTabs[i]!=null) {
+        tmp.push(_hmTabs[i]);
+      }
+    }
+    return tmp;
+  };
+
+  /**
+   * 获得最后活动的的模型
+   */
+  this.getActiveModel = getActiveModel;
+
+  function getActiveModel() {
+    return _hmTabs[_lastActiveUuid];
+  };
+
+  //获得当前Lister的名称
+  this.getActiveTabListerName = function() {
+    var m = _hmTabs[_lastActiveUuid];
+    if (m.uuid==0) { //这是查询页面
+      return null;
+    }
+    var ts = m.domSub.all.tags("TABLE");
+    for (var i=0; i<ts.length; i++) {
+      if (ts[i].getAttribute("tt.impl")!=null) {
+        return ts[i].getAttribute("name");
+      }
+    }
+    return null;
+  };
+
+  //刷新当前活动的Tab页面
+  this.reloadActive = function() {
+     var actMd = getActiveModel();
+     if (actMd!=null) {
+       var listerId = actMd.listerId;
+       if (__get(listerId)!=null) {
+         __get(listerId).reload();
+       }
+     }
+  };
+
+  /**
+   * 画外观的时候先画出全部的内容，到最后才根据用tab的子中
+   * 是否有子指定了属性TT.active，如果有就显示该子，如果没有
+   * 就以第一个做为active的对象，默认时全部都会隐藏的
+   */
+  this.init = init;
+
+  function init($dom) {
+  	_dom = $dom;
+    _tab = _dom.getAttribute("TT.tab");
+
+    if (_dom.getAttribute("tt.instance")=="true") {
+      _dom.setAttribute("tt.instance", this);
+    }
+
+    if (eval("window." + _tab + "_beforeTabChange")!=null) {
+    	_beforeEvent = eval("window." + _tab + "_beforeTabChange");
+    }
+
+    _subs = __getObjs(_tab);
+    if (_subs.length==0) { //如果没有使用tt.id来获得
+    	var tables = document.all.tags("TABLE");
+    	_subs = [];
+    	for (var i=0,len=tables.length; i<len; i++) {
+    		if (tables[i].getAttribute("tt.id")==_tab) {
+    			_subs.push(tables[i]);
+    		}
+    	}
+    }
+
+    _attr_padding = _dom.getAttribute("cellPadding") || _attr_padding;
+
+    if (_dom.getAttribute("tt.multiLine")!=null) {
+      _allowMultiLine = true;
+    }
+
+    if (_dom.getAttribute("tt.multiFix")!=null) {
+       _multiFix = _dom.getAttribute("tt.multiFix")*1;
+    }
+
+    initTabs();
+
+    //queryTab 监听鼠标右键，当按下鼠标右键时自动返回查询的主界面
+    document.body.attachEvent("onmousedown", querySwitch);
+  }
+
+  //跳至查询的Tab当中
+  function querySwitch() {
+    if (event.button==2) {
+      activeTabByIndex(0);
+    }
+  }
+
+  /**
+   * 初始化Tab的标题内容
+   */
+  function initTabs() {
+    _dom.innerHTML = Comp_QueryTab_Tab_Html;
+    _dom.children[0].setAttribute("cellPadding", _attr_padding);
+    _tabTable = _dom.children[0];
+    _tabContainer = _tabTable.rows[0].cells[0];
+    _subContainer = _tabTable.rows[1].cells[0];
+    _lCon = _tabContainer.children[0];
+    _lastAdd = _lCon.children[0];
+    _l = _tabContainer.clientWidth;
+
+    if (_l==0) { //bug fix when a frame load in jwindow
+       _l = document.body.clientWidth;
+    }
+
+    var len = _subs.length;
+    var activeUuid = 0;
+    for (var i=0; i<len; i++) {
+      var tabModel = parseSub(_subs[i]);
+      if (tabModel.active) {
+        activeUuid = i;
+      }
+      /** rename the tabdomId */
+      if (_subs[i].getAttribute("tt.name")!=null) {
+        _subs[i].id = _subs[i].getAttribute("tt.name");
+      }
+      addTab(tabModel);
+    }
+
+    activeTab(activeUuid);
+
+    /**
+     * 如果Tab中的表格已经是有边框的就自动隐藏边框
+     */
+    var ht = null;
+    for (var i in _hmTabs) {
+      ht = _hmTabs[i];
+      if (ht!=null) {
+        if (ht.domSub.tagName=="TABLE") {
+          if (ht.domSub.border>=1) {
+            _subContainer.style.borderWidth = "0px";
+          }
+        }
+      }
+    }
+  }
+   var _currentLayerTab = 1;  //当前层Tab
+  /**
+   * 分析一个指定的Tab数据产生相应的Tab模型体，这样做为以后的
+   * 动态添加一个Tab提供的方便
+   */
+  function parseSub($domSub) {
+    var tabModel = {
+      "uuid":_iTab,
+      "title":$domSub.getAttribute("TT.tab.title"),
+      "icon":$domSub.getAttribute("TT.tab.icon"),
+      "domSub":$domSub,
+      "active":$domSub.getAttribute("TT.tab.active")=="true"?true:false,
+      "domTab":null
+    };
+    tabModel.domSub.setAttribute("TT.tab.uuid", tabModel.uuid);
+    return tabModel;
+  }
+
+  /**
+   * 添加Tab
+   */
+  function addTab($model) {
+    var domTab = __createElementByHTML(Comp_QueryTab_Tab);
+
+    if ($model.title.indexOf("${close}")!=-1) {
+      var s = $model.title.replace("\$\{close\}", "");
+      domTab.rows[1].cells[1].innerHTML = s + "&nbsp;<img src=" + _c + "/img/juice/del.gif align=absmiddle alt=删除 id=DTab style='cursor:hand'>";
+      domTab.rows[1].cells[1].all.DTab.attachEvent("onclick", delTab);
+    }else {
+      domTab.rows[1].cells[1].innerHTML = $model.title;
+    }
+    domTab.style.marginLeft = $model.uuid==0?"0px":"3px";
+    domTab.setAttribute("TT.tab.uuid", $model.uuid);
+
+    _lastAdd.insertAdjacentElement("afterEnd", domTab);
+     _cl += domTab.clientWidth + 10;
+
+     if (_allowMultiLine) { //已经超过行数最大限制
+       var nowL = _lCon.clientWidth + _currentLayerTab*_multiFix;
+       if (nowL >=_l) {
+         var domTr = _tabTable.insertRow(0);
+         var domTd = domTr.insertCell();
+         domTd.innerHTML = "<div style='width:0px;margin-bottom:-4px'></div>";
+         _lCon = domTd.children[0];
+         _lCon.insertAdjacentElement("afterBegin", domTab);
+         _currentLayerTab = 1;
+       }
+       _currentLayerTab++;
+     }
+
+    _subContainer.insertAdjacentElement("beforeEnd", $model.domSub);
+    __addEvent(domTab, "onclick", clickTab);
+    __addEvent(domTab, "onmouseover", overTab);
+    __addEvent(domTab, "onmouseout", outTab);
+
+    $model.domSub.style.display = "none";
+    $model.domTab = domTab;
+
+    _hmTabs[$model.uuid] = $model;
+    _iTab++;
+    _lastAdd = domTab;
+  }
+
+  /**
+   * 激活一个Tab
+   */
+  function activeTab($uuid) {
+    /**
+     * 调用Tab变化前的函数操作
+     */
+    if (_beforeEvent!=null) {
+      _beforeEvent(_hmTabs[$uuid], _hmTabs[_lastActiveUuid]);
+
+    }
+    //解决bug：当有ocx控件时会使前往的tab页中的select框消失
+    try {
+    document.body.focus();
+    }catch(e){}
+
+    if ($uuid==_lastActiveUuid)
+      return;
+
+    if (_lastActiveUuid!=null) {
+      var model = _hmTabs[_lastActiveUuid];
+      if (model==null)
+        return;
+
+      var mdr0 = model.domTab.rows[0];
+      mdr0.cells[0].children[0].src = _c + "/img/tab/1a.gif";
+      mdr0.cells[1].style.backgroundImage = "url('" + _c + "/img/tab/2a.gif')";
+      mdr0.cells[2].children[0].src = _c + "/img/tab/3a.gif";
+
+      var mdr1 = model.domTab.rows[1].cells[1];
+      mdr1.style.color = "black";
+      mdr1.style.cursor = "hand";
+
+      model.domSub.style.display = "none";
+    }
+
+    var model = _hmTabs[$uuid];
+
+    var mdr0 = model.domTab.rows[0];
+    mdr0.cells[0].children[0].src = _c + "/img/tab/1.gif";
+    mdr0.cells[1].style.backgroundImage = "url('" + _c + "/img/tab/2.gif')";
+    mdr0.cells[2].children[0].src = _c + "/img/tab/3.gif";
+
+    var mdr1 = model.domTab.rows[1].cells[1];
+        mdr1.style.color = "#0066CC";
+        mdr1.style.cursor = "default";
+
+    model.domSub.style.display = "";
+
+    _lastActiveUuid = $uuid;
+  }
+
+  var _lastOverTab = null;
+  function overTab() {
+     var uuid = getEventUuid();
+     var modelR = _hmTabs[uuid].domTab.rows[0];
+     modelR.cells[0].children[0].src = _c + "/img/tab/1.gif";
+     modelR.cells[1].style.backgroundImage = "url('" + _c + "/img/tab/2.gif')";
+     modelR.cells[2].children[0].src = _c + "/img/tab/3.gif";
+     _lastOverTab = uuid;
+  }
+
+  function getEventUuid() {
+    var dom = window.event.srcElement;
+    dom = __getReal(dom, "tagName", "TABLE");
+    return dom.getAttribute("TT.tab.uuid");
+  }
+
+  function outTab() {
+    var uuid = getEventUuid();
+    if (uuid!=_lastActiveUuid) {
+    var modelR = _hmTabs[uuid].domTab.rows[0];
+    modelR.cells[0].children[0].src = _c + "/img/tab/1a.gif";
+    modelR.cells[1].style.backgroundImage = "url('" + _c + "/img/tab/2a.gif')";
+    modelR.cells[2].children[0].src = _c + "/img/tab/3a.gif";
+    }
+  }
+
+  /**
+   * 通过顺序索引来激活一个Tab
+   */
+  this.activeTabByIndex = activeTabByIndex;
+  function activeTabByIndex($idx) {
+    activeTab(_subs[$idx].getAttribute("TT.tab.uuid"));
+  };
+
+  /**
+   * 用户点中一个Tab
+   */
+  function clickTab() {
+    var dom = window.event.srcElement;
+    dom = __getReal(dom, "tagName", "TABLE");
+    activeTab(dom.getAttribute("TT.tab.uuid"));
+
+
+  }
+
+  /**
+   * 对于一些需要动态添加一个Tab的操作提供一个外部的接口
+   */
+  this.appendTab = appendTab;
+
+  function appendTab($domTab) {
+    var c = countCurrentTabs();
+    if (c>=6) {
+      alert("只允许最大5个查询子页，请先删除已有的结果子页");
+      return;
+    }
+
+
+    var domTmpSpan = document.createElement("SPAN");
+    document.body.insertAdjacentElement("beforeEnd", domTmpSpan);
+    domTmpSpan.innerHTML = $domTab.outerHTML;
+
+    var domTab = domTmpSpan.children[0];
+    var uid = __uuid();
+    domTab.id = "TB" + uid;
+
+    //queryTab强制其下带有一个TableLister，但这个TableLister为未渲染的，复制后渲染这个Lister
+    var lister = domTab.all.COMP_TMP;
+    lister.id = "LT" + uid;
+    var newName = "LN" + uid;
+    lister.setAttribute("name", newName);
+    //因为lister会重复需要修改这个lister当中的连接id
+    var srcPgId = lister.getAttribute("tt.link.id");
+    var pgId = "TP" + uid;
+
+    lister.setAttribute("tt.link.id", pgId);
+    var domSrcPg = eval("lister.all." + srcPgId);
+    domSrcPg.id = pgId;
+    if (lister!=null) {
+      __render(lister);
+    }
+
+    var tabModel = parseSub(domTab);
+    tabModel.listerId = lister.id;
+    addTab(tabModel);
+    activeTab(tabModel.uuid);
+  };
+
+  /**
+   * 删除一个Tab的显示
+   */
+  this.removeTab = removeTab;
+
+  function removeTab($tabModel) {
+    var uuid = $tabModel.uuid;
+
+    var laterActiveUuid;
+     if (_lastActiveUuid==null) { //如果没有选择就删被删除的前一个,_lastActiveUuid为null时是因为在当前tab删除其本身
+       laterActiveUuid = getPrevTab(uuid);
+     }else {
+       laterActiveUuid = _lastActiveUuid;
+     }
+
+    _hmTabs[uuid] = null;
+    delete _hmTabs[uuid];
+    $tabModel.domSub.removeNode(true);
+    $tabModel.domTab.removeNode(true);
+
+
+    if (laterActiveUuid==null) {
+      laterActiveUuid = getFirstTab();
+    }
+
+    if (_lastAdd!=null) {
+      _lastAdd = _hmTabs[laterActiveUuid].domTab;
+    }
+    activeTab(laterActiveUuid);
+  };
+
+  function delTab() {
+    event.cancelBubble = true;
+    var d = event.srcElement;
+    d = __getReal(d, "tagName", "TABLE");
+    var uid = d.getAttribute("TT.tab.uuid");
+    if (uid!=null) {
+      var tabModel = _hmTabs[uid];
+      if (_lastActiveUuid==uid) {
+        _lastActiveUuid = null;
+        removeTab(tabModel);
+      }else {
+        removeTab(tabModel);
+      }
+    }
+  }
+
+
+  /**
+   * 统计当前还有多少个Tab
+   */
+  function countCurrentTabs() {
+    var count = 0;
+    for (var i in _hmTabs) {
+      if (_hmTabs[i]!=null) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  /**
+   * 获得最前可用的Tab
+   */
+  function getFirstTab() {
+    for (var i in _hmTabs) {
+      if (_hmTabs[i]!=null) {
+        return _hmTabs[i].uuid;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * 是否首个Tab对象
+   */
+  function isFirstTab($uuid) {
+    return getFirstTab()==$uuid;
+  }
+
+  /**
+   * 获得一个Tab的前一个Tab对象
+   */
+  function getPrevTab($uuid) {
+    var lastUuid = null;
+    for (var i in _hmTabs) {
+      if (_hmTabs[i]!=null) {
+        if ($uuid==_hmTabs[i].uuid) {
+          return lastUuid;
+        }
+        lastUuid = _hmTabs[i].uuid;
+      }
+    }
+    return null;
+  }
+}
+  ]]></scripts>

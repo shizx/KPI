@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<taglib xmlns="http://java.sun.com/xml/ns/javaee"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-jsptaglibrary_2_1.xsd"
+    version="2.1">
+    
+  <description>JSTL 1.2 core library</description>
+  <display-name>JSTL core</display-name>
+  <tlib-version>1.2</tlib-version>
+  <short-name>zuyue</short-name>
+  <uri>http://www.zuyue.cn</uri>
+
+  <tag>
+    <description></description>
+    <name>pager</name>
+    <tag-class>com.zuyue.tag.PagerTag</tag-class>    
+    <body-content>empty</body-content>
+    <attribute>
+    	<name>pager</name>
+    	<required>true</required>
+    	<fragment>false</fragment>
+    	<rtexprvalue>true</rtexprvalue>
+    </attribute>
+    <attribute>
+    	<name>nameSpace</name>
+    	<required>false</required>
+    	<fragment>false</fragment>
+    	<rtexprvalue>true</rtexprvalue>
+    </attribute>
+  </tag>
+    
+    <!-- 根据传入选项框的值，来构建select的HTML -->
+   <tag>
+       <name>selection</name>
+       <tag-class>com.zuyue.tag.SelectionTag</tag-class>
+       <body-content>empty</body-content>
+       <attribute>
+           <!-- 选项框的map对象 -->
+           <name>selectionMap</name>
+           <required>false</required>
+           <fragment>false</fragment>
+           <rtexprvalue>true</rtexprvalue>
+       </attribute>
+       <attribute>
+           <!-- 选项框的名称 -->
+           <name>selectionName</name>
+           <required>true</required>
+           <fragment>false</fragment>
+           <rtexprvalue>true</rtexprvalue>
+       </attribute>
+       <attribute>
+           <!-- 选项框的选中的值 -->
+           <name>selectedValue</name>
+           <required>false</required>
+           <fragment>false</fragment>
+           <rtexprvalue>true</rtexprvalue>
+       </attribute>
+       <attribute>
+           <!-- 是否构建空的选项，默认为ture -->
+           <name>booBuildEmptyOption</name>
+           <required>false</required>
+           <fragment>false</fragment>
+           <rtexprvalue>true</rtexprvalue>
+       </attribute>
+   </tag>
+   
+   <!-- 根据Map的值展示出所选的值对应的文本 -->
+   <tag>
+   		<name>displayText</name>
+   		<tag-class>com.zuyue.tag.DisplayTextTag</tag-class>
+   		<body-content>empty</body-content>
+   		<attribute>
+           <!-- 选项框的map对象 -->
+           <name>selectionMap</name>
+           <required>false</required>
+           <fragment>false</fragment>
+           <rtexprvalue>true</rtexprvalue>
+       </attribute>
+       <attribute>
+           <!-- 选项框的选中的值 -->
+           <name>selectedValue</name>
+           <required>false</required>
+           <fragment>false</fragment>
+           <rtexprvalue>true</rtexprvalue>
+       </attribute>
+   </tag>
+</taglib>

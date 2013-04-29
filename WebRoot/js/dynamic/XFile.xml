@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="GB2312"?>
+<!--
+  动态脚本加载模式类
+	/**
+	 * 本地文件的封装类型 2003-8-5 16:22
+	 * 默认的并不会预先读取文件中的内容，只有在调用getContextAsText方法时才会真正的读取文件中的内容
+	 * 并且一旦读取，会把内容缓冲起来，下次调用时不再读取，当然可以强制读取，XFile与Java中操作File的
+	 * 概念基本一样，即可以是文件也可以是目录
+   * @author: TANTOM
+   * @date: 这就是生活
+   */
+-->
+<scripts><![CDATA[
+function XFile($sPath) {
+ 
+  this.getContentAsText = getContentAsText; //获得文件的内容
+  this.isFile = isFile; //文件是否存在
+  this.isFolder = isFolder; //是否目录
+  this.isFolderExist = isFolderExist; //指定的目录是否存在
+  this.isFileExist = isFileExist; //指定的文件是否存在
+  this.getFiles = getFiles; //获得目录下的全部文件，文件会重新包装为XFile对象，包括目录
+  this.getParentFolder = getParentFolder; //获得文件或者目录的父亲目录
+  this.getSubFolders = getSubFolders; //获得目录下的全部可用目录 
+  this.open = open; //打开文件的写入流
+  this.write = write; //向文件写入内容
+  this.copy = copy; //复制一文件
+  this.close = close; //关闭文件流
+  this.createFile = createFile; //创建一个文件
+  this.rename = rename; //文件重命名
+  this.createFolder = createFolder; //创建一个目录
+  this.remove = remove; //删除文件或者目录
+  this.toString = toString; //重构父类方法
+  this.getPath = getPath; //获得文件的地址
+  this.getDirPath = getDirPath; //获得文件目录
+  this.getFileName = getFileName; //获得文件名
+  this.getName = getName; //获得文件的名
+  this.reset = reset; //设置标志位为初始化
+  
+  var _axFileSystem = null; //文件操作的ActiveXObject
+  var _axFile = null; //文件操作实例
+  var _absPath = $sPath; //文件绝对地址
+  var _sContent = null; //获得的内容
+  var _loaded = false; //是否已经读取过数据
+  var _stream = null; //文件流
+  
+  /**
+   * 获得文件名，如juice.js
+   */
+  function getFileName() {
+    var l = _absPath.lastIndexOf("\\");
+    return _absPath.substr(l+1);
+  }
+  
+  /**
+   * 获得文件的名字， 如juice
+   */
+  function getName() {
+    var fn = getFileName();
+    var l = fn.lastIndexOf(".");
+    return fn.substr(0, fn.length-l+1);
+  }
+  
+  /**
+   * 获得文件所在目录
+   */
+  function getDirPath() {
+    var l = _absPath.lastIndexOf("\\");
+    return _absPath.substr(0, l);    
+  }
+  
+  
+  function reset() {
+    _loaded = false;
+  }
+  /**
+   * 获得文档操作的对象实例
+   */
+  function getFileSystemObject() {
+    if (_axFileSystem==null) {
+      _axFileSystem = new ActiveXObject("Scripting.FileSystemObject");
+    }
+    return _axFileSystem;
+  }
+  
+  /**
+   * 获得文件的AX实例
+   */
+  function getFile() {
+    
+    if (!isFile()) {
+      throw new Error("指定地址不是有效的文件或者指定的是目录:" + _absPath);
+    }
+    
+    if (_axFile==null) {
+      _axFile = getFileSystemObject().GetFile(_absPath);
+    }
+    return _axFile;
+  }
+  
+  /**
+   * 获得Folder的AX实例
+   */
+  function getFolder() {
+    
+    if (!isFolder()) {
+      throw new Error("指定地址不是有效的目录:" + _absPath);
+    }
+    
+    if (_axFile==null) {      
+      _axFile = getFileSystemObject().GetFolder(_absPath);
+    }
+    
+    return _axFile;
+  }
+  
+  /**
+   * 获得文件的内容
+   */
+  function getContentAsText() {    
+    if (!_loaded) {
+      try {
+	      var streamFile = getFileSystemObject().OpenTextFile(_absPath, 1);   
+        _sContent = streamFile.ReadAll();
+        streamFile.Close();    
+      }catch(e) {      	
+        _sContent = null;
+      }
+      _loaded = true;
+    }
+    
+    return _sContent;
+  }
+  
+  /**
+   * 文件是否存在
+   */
+  function isFile() {
+    return getFileSystemObject().FileExists(_absPath);
+  }
+  
+  /**
+   * 是否目录
+   */
+  function isFolder() {    
+    return getFileSystemObject().FolderExists(_absPath);
+  }
+  
+  /**
+   * 指定的文件是否存在
+   */
+  function isFileExist($filePath) {
+    return getFileSystemObject().FileExists($filePath);
+  }
+  
+  /**
+   * 指定的目录是否存在
+   */
+  function isFolderExist($folderPath) {
+    return getFileSystemObject().FolderExists($folderPath);
+  }
+  
+  
+  /**
+   * 获得目录下的全部文件，文件会重新包装为XFile对象
+   * @return Vector 全部的file文件
+   */
+  function getFiles() {
+    var colFiles = getFolder().files;
+    var enuFiles = new Enumerator(colFiles);
+    var vt = new Collection();
+    for (; !enuFiles.atEnd(); enuFiles.moveNext()) {
+      vt.add(new XFile(enuFiles.item()));
+    }
+    return vt;
+  }
+  
+  /**
+   * 获得文件或者目录的上一级目录
+   * 返回的同样是一个XFile，不过这个XFile是一定是Folder的，最高级的目录的Parent为null
+   */
+  function getParentFolder() {
+    initFileOrFolder();
+    
+    var file = _axFile.ParentFolder;
+    if (file==null)
+      return null;
+      
+    return new XFile(file);
+  }
+  
+  /**
+   * 初始化文件或者目录的读取
+   */
+  function initFileOrFolder() {
+    if (isFile()) {
+      getFile();
+    } else if (isFolder()) {
+      getFolder();    
+    } else {
+      throw new Error("指定的文件即不是文件也不是目录:" + _absPath);
+    }
+  }
+  
+  /**
+   * 获得目录下的全部可以子目录，返回Collection
+   */
+  function getSubFolders() {
+    if (!isFolder()) {
+      throw new Error("获得目录下的子目录只对目录才有作用");
+    }
+    
+    var enuFolders = new Enumerator(getFolder().SubFolders);
+    var col = new Collection();
+    for (; !enuFolders.atEnd(); enuFolders.moveNext()) {
+      col.add(new XFile(enuFolders.item()));
+    }
+    
+    return col;
+  }
+  
+  var _openType = null;
+  /**
+   * 打开文件的操作流
+   * ForWriting 2 以写方式打开文件 
+   * ForAppending 8 打开文件并从文件末尾开始写。 
+   */
+  function open($appendType) {
+    if (!isFile()) {
+      throw new Error("只能打文件类型的文档");
+    }
+    
+    _openType = $appendType;
+    /** 如果不指定$appendType的话默认的以末尾开始写的方式 */
+    if ($appendType==null)
+      _openType = 8;
+    
+    _stream = getFileSystemObject().OpenTextFile(_absPath, _openType, false);
+  }
+  
+  /**
+   * 在已经打开的文件流中写入内容
+   */
+  function write($content) {
+    _stream.Write($content);
+  }
+  
+  /**
+   * 关闭文件流
+   */
+  function close() {
+    _stream.Close();
+  }
+  
+  /**
+   * 复制文件成为另一个文件，并返回复制后文件XFile封装类
+   */
+  function copy($targetFileName, $srcFileName) {
+    if ($srcFileName==null) { //复制当前的文件
+      getFile().Copy($targetFileName);
+    }else { //复制指定的文件
+      new XFile($srcFileName).copy($targetFileName);
+    }
+    return new XFile($targetFileName);
+  }
+  
+  /**
+   * 创建一个文件，会返回创建后的文件的XFile对象
+   */
+  function createFile($name) {
+    /**
+     * 2003-10-6 9:44 支持对不存在目录下文件的创建
+     */    
+    var bDisk = $name.indexOf(":")!=-1;
+    if (bDisk) {
+      var bDir = $name.indexOf("\\", 3)!=-1;
+      if (bDir) { //有目录
+        var aryd = $name.split("\\");
+        var d = "";
+        for (var i=1; i<aryd.length-1; i++) {
+          if (i==1) {
+            d += aryd[0] + "\\" + aryd[i];
+          }else {
+            d += "\\" + aryd[i];
+          }          
+          if (!isFolderExist(d)) {
+            createFolder(d);
+          }
+        }
+      }
+    }else { //没指定盘符
+      /** @todo 相对地址格式 */
+      var bDir = $name.indexOf("\\")!=-1 || $name.indexOf("\/")!=-1;
+      if (bDir) {
+        var aryd = $name.split("\\");
+        if (aryd.length==0) {
+          aryd = $name.split("\/");
+        }
+        var d = "";
+        for (var i=0; i<aryd.length-1; i++) {
+          d += "\\" + aryd[i];
+          if (!isFolderExist(d)) {
+            createFolder(d);
+          }
+        }
+      }      
+    }
+     
+    var file = getFileSystemObject().CreateTextFile($name, true);
+    file.Close();
+    return new XFile($name);
+  }
+  
+  /**
+   * 创建一个目录，会返回创建后目录的XFile对象
+   */
+  function createFolder($name) {
+    var folder = getFileSystemObject().CreateFolder($name);
+    
+    if (folder==null)
+      throw new Error("创建目录失败:" + $name);
+      
+    return new XFile(folder.Path);  
+  }
+  
+  /**
+   * 修改文件或者目录的名称，当前使用比较复杂，是基top框架中的地址来做命名的
+   */
+  function rename($newName) {
+    initFileOrFolder();
+    _axFile.Move($newName);
+  }
+  
+  /**
+   * 删除目录或者文件
+   */
+  function remove() {
+    initFileOrFolder();
+    _axFile.Delete();
+  }
+  
+  /**
+   * 获得文件的地址
+   */
+  function getPath() {
+    return _absPath;
+  }
+  
+  /**
+   * 重构父类的toString方法
+   * @return 地址
+   */
+  function toString() {
+    return _absPath;
+  }
+}
+    ]]></scripts>

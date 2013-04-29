@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="GB2312"?>
+<scripts><![CDATA[
+_JUICECLASSES['NAMenu'] = NAMenu;
+function NAMenu() {
+   var _bg;
+   this.init = function($dom) {
+     _bg = $dom.parentElement.style.backgroundColor;
+     var domMenus = $dom.children;
+     var objItems = [];
+     for (var i=0; i<domMenus.length; i++) {
+       objItems.push(createItem(domMenus[i]));
+     }
+     $dom.innerHTML = "";
+     for (var i=0; i<objItems.length; i++) {
+       objItems[i].attachEvent("onmouseover", doMouseOverItem);
+       objItems[i].attachEvent("onmouseout", doMouseOutItem);
+       objItems[i].attachEvent("onclick", doClickItem);
+       $dom.insertAdjacentElement("beforeEnd", objItems[i]);
+     }
+   };
+
+   function doClickItem() {
+     var d = event.srcElement;
+     d = __getReal(d, "tagName", "TABLE");
+     var e = d.getAttribute("tt.event");
+     eval(e);
+   }
+
+   function doMouseOverItem() {
+     var d = event.srcElement;
+     d = __getReal(d, "tagName", "TABLE");
+     d.style.borderWidth = "1 1 1 1";
+     d.style.borderStyle = "solid";
+     d.style.borderColor = "#A7A6AA";
+     d.style.backgroundColor = "#FFFFFF";
+   }
+
+   function doMouseOutItem() {
+     var d = event.srcElement;
+     d = __getReal(d, "tagName", "TABLE");
+     d.style.borderWidth = "1 1 1 1";
+     d.style.borderStyle = "solid";
+     d.style.borderColor = _bg;
+     d.style.backgroundColor = "transparent";
+   }
+
+   //生成一个菜单
+   function createItem($span) {
+      var itemName = $span.getAttribute("name");
+      var itemIcon = $span.getAttribute("img");
+      if (itemIcon.indexOf("/")==0) {
+        itemIcon = _c + itemIcon;
+      }
+      var itemEvent = $span.getAttribute("event");
+      var sb = [];
+      sb.push("<table tt.event=\"" + itemEvent + "\" align=left style='cursor:hand;border:1 solid " + _bg + "'><tr><td align=center>");
+      sb.push("<img src=" + itemIcon + ">");
+      sb.push("</td></tr><tr><td align=center>");
+      sb.push(itemName);
+      sb.push("</td></tr></table>");
+      return __createElementByHTML(sb.join(""));
+   }
+}
+  ]]></scripts>

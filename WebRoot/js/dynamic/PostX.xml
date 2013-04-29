@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="GB2312"?>
+<scripts><![CDATA[
+/**
+ * 提交一个指定的表单
+ * $formName可以是名字也可以是dom对象
+ */
+function __xmlpostCoreX($formName) {
+
+  if (window._formPostingInProcess) {
+    __alert("有操作正在进行中，请稍后");
+    return false;
+  }
+  var _domForm = null;
+  var _domPostName = null;
+  var _domPostFrame = null;
+
+  if ($formName==null) {
+    _domForm = document.forms[0];
+  }else {
+    if (typeof($formName)=="string") {
+      _domForm = __get($formName);
+    }else {
+      _domForm = $formName;
+    }
+  }
+
+  //first it need to check the form it's validate, process 1.juice check 2.formName_check
+  var errorList = __validate(_domForm);
+  var formCheckFct = eval("window." + _domForm.name + "_check");
+  if (formCheckFct!=null) { //if use supply the special form check method then call it
+    formCheckFct(_domForm, errorList);
+  }
+
+
+  if (errorList.hasErrors()) {
+    if (errorList.isAlert()) {
+      alert(errorList);
+    }else {
+      alert(errorList);
+    }
+    return false;
+  }
+
+  if (errorList.getReturn()) {
+    return false;
+  }
+
+  if (errorList.getConfirm()!=null) {
+    if (!confirm(errorList.getConfirm())) {
+      return false;
+    }
+  }
+
+
+  /** conver all the elements value's special code */
+  var elements = _domForm.elements;
+  var el = null;
+  var elTN = null;
+  for (var i=0, len=elements.length; i<len; i++) {
+    el = elements[i];
+    elTN = el.tagName.toUpperCase();
+    if (elTN=="INPUT" || elTN=="TEXTAREA") {
+      if (el.getAttribute("tt.nofilter")==null) { //some code need to be use html support
+        el.value = __filter(el.value);
+      }
+    }
+  }
+
+  var formBeforeSubmit = eval("window." + _domForm.name + "_onSubmit");
+  if (formBeforeSubmit!=null) {
+    if (!formBeforeSubmit(_domForm)) {
+      return false;
+    }
+  }
+
+
+  if (_domPostFrame==null) {
+
+    _domPostName = "F" + __uuid();
+    _domPostFrame = __createElementByHTML("<iframe style='display:none' name='" + _domPostName + "' height=0 width=0  src='javascript:false'></iframe>");
+    _domForm.insertAdjacentElement("afterBegin", _domPostFrame);
+    _domForm.setAttribute("target", _domPostName);
+    _domPostFrame.onreadystatechange = formListener;
+
+  }
+
+  _waitId = __wait("<div style='width:300px;height:60px;background-color:#f7f3f7;vertical-align:middle' align=center>操作进行中，请稍候...<BR><BR><img src=" + _c + "/img/juice/loading.gif></div>~500");
+  var toPost = false;
+  setTimeout(goSubmit, 100);
+
+
+  function goSubmit() {
+    toPost = true;
+    window._formPostingInProcess = true;
+    if (_domForm.getAttribute("encoding")=="multipart/form-data") {
+      try {
+        _domForm.submit();
+      }catch(e) {
+        alert("表单数据不正确，请检查数据是否正确:例如：提供的附件不是文件类型");
+        toPost = false;
+        window._formPostingInProcess = false;
+        __unwait(_waitId);
+      }
+    }else {
+      _domForm.submit();
+    }
+  }
+
+  /**
+   * 表单递交时的监听器
+   */
+  function formListener() {
+    if (_domPostFrame.readyState=="complete" && toPost) {
+
+       _domPostFrame.onreadystatechange = new Function("return false;");
+       _domPostFrame.parent
+      //检查这个页面是否有指定需要锁定的操作，如果发现这里的actionSuccess与afterSuccess带有地址跳转就锁定页面
+      var name = _domPostFrame.getAttribute("name");
+      var actionWin = document.frames[name];
+      var afterFct = actionWin.afterSuccess;
+      var actionFct = actionWin.actionSuccess;
+      var bOpenWin = __isJwindow();
+      var fctStr = null;
+      if (bOpenWin) {
+        if (typeof(afterFct)!="undefined") {
+          fctStr = afterFct.toString();
+        }
+      }else {
+        if (typeof(actionFct)!="undefined") {
+          fctStr = actionFct.toString();
+        }
+      }
+      if (fctStr==null) {
+        if (typeof(top._isModalWin)!='undefined') {
+          fctStr = afterFct.toString();
+        }
+      }
+
+      var bJump = false;
+      if (fctStr!=null) {
+        if (__isJump(fctStr)) {
+          bJump = true;
+        }
+      }
+
+      __unwait(_waitId);
+      if (!bJump) { //开放再次操作权限
+        window._formPostingInProcess = false;
+      }else {
+        top.__jump(window);
+      }
+    }
+  }
+}
+window.__xmlpostx = __xmlpostCoreX;
+]]></scripts>

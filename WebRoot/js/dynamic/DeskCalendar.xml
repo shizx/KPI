@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="GB2312"?>
+<scripts><![CDATA[
+//桌面上显示的日历信息，与CalendarManager基本一样但精简的很多处理，只让用户可以查看与添加即可
+//@author: TANTOM
+//@note: 可否争一口气！
+var _deskCalIns = null;
+function DeskCalendar() {
+  var _oXml = __getXmlObject();
+  var _dom = null;
+  var _dataUrl = _c + "/app/calendar/xml/desk_month_xml.jsp";
+  var _domFillTable = null;
+  var _domFillBody = null;
+  var _domFillMonth = null;
+  var _domFillTroList = null;
+  var _domTFoot = null;
+  var _currentMonth = null;
+  var _currentYear = null;
+  var _iMonth = 0;
+  var _iYear = 0;
+  var _iTd = 0;
+  var _today;
+  var _nodeRoot = null;
+
+  window.attachEvent("onunload", clear);
+  function clear() {
+    if (_oXml!=null) {
+      _oXml.onreadystatechange = new Function("return false;");
+      _oXml = null;
+    }
+  }
+
+  this.init = function init($d) {
+    _deskCalIns = this;
+    _dom = $d;
+    var dNow = new Date();
+    dNow.setTime(__serverTime);
+    _currentMonth = dNow.getMonth();
+    _currentYear = dNow.getYear();
+    setYM(_currentYear, _currentMonth);
+    var sb = [];
+    sb.push("<table style='table-layout:fixed' width=100% cellspacing=0 cellpadding=2><tr style='background-color:#f8f8f8'><td align=center><img src=" + _c + "/img/tt/ml.gif title='上月' id=DomPrevMX style='cursor:hand'></td><td align=center id=DomFillM>" + _currentYear + "年" + (_currentMonth+1) + "月</td><td align=center><img src=" + _c + "/img/tt/mr.gif title='下月' id=DomNextMX style='cursor:hand'></td></tr></table>");
+    sb.push("<table style='table-layout:fixed;border-collapse:collapse;cursor:default' border=1 bordercolor=#dddddd width=100% cellspacing=0 cellpadding=3>");
+    sb.push("<col align=center width=14%><col align=center width=14%><col align=center width=14%><col align=center width=14%><col align=center width=14%><col align=center width=14%><col align=center width=14%>");
+    sb.push("<thead><tr style='background-color:#DDEAF3'><td>一</td><td>二</td><td>三</td><td>四</td>");
+    sb.push("<td>五</td><td style='color:#E10000'>六</td><td style='color:#E10000'>日</td>");
+    sb.push("</tr></thead><tbody></tbody><tfoot><tr><td colspan=7><table width=100%><tr><td id=DomTroList></td></tr></table></td></tfoot></table>");
+    sb.push("<div style='background-color:#F8F8F8;border:1 solid #cccccc;padding:0px;position:absolute; left:2px; top:2px;z-index:299;color:black;display:none;width:" + _gw + "px;height:" + _gh + "px'>");
+    sb.push("<div style='font-family:Tahoma;background-color:#E4E8F8;padding:3px;width:100%;border-width:0 0 1 0;border-style:solid;border-color:#cccccc'></div><div style='font-family:Tahoma;padding:5px;overflow:auto;height:100%;width:100%'></div>");
+    sb.push("</div>");
+    _dom.innerHTML = sb.join("");
+    _domFillTable = _dom.children[1];
+    _domFillBody = _domFillTable.tBodies[0];
+    _domTFoot = _domFillTable.tFoot;
+    _gLayer = _dom.children[2];
+    var d = _dom.children[0].all.DomPrevMX;
+    _domFillMonth = _dom.children[0].all.DomFillM;
+    _domFillTroList = _dom.all.DomTroList;
+    __addEvent(d, "onclick", doPrevMEvent);
+    d = _dom.children[0].all.DomNextMX;
+    __addEvent(d, "onclick", doNextMEvent);
+    load();
+  };
+
+  this.reload = load;
+
+  function getNextMonth($year, $month) {
+    var m = [];
+    if ($month==11) {
+      m.month = 0;
+      m.year = $year + 1;
+      return m;
+    }
+    m.year = $year;
+    m.month = $month*1 + 1;
+    return m;
+  }
+
+  function getPrevMonth($year, $month) {
+    var m = [];
+    if ($month==0) {
+      m.month = 11;
+      m.year = $year*1 - 1;
+      return m;
+    }
+    m.year = $year;
+    m.month = $month*1 - 1;
+    return m;
+  }
+
+  function doPrevMEvent() {
+    var year = __getUrlParamValue("tt.year", _dataUrl)*1;
+    var month = __getUrlParamValue("tt.month", _dataUrl)*1;
+    var m = getPrevMonth(year, month);
+    _dataUrl = __setUrlParam(_dataUrl, "tt.year", m.year);
+    _dataUrl = __setUrlParam(_dataUrl, "tt.month", m.month);
+    load();
+  }
+
+  function doNextMEvent() {
+    var year = __getUrlParamValue("tt.year", _dataUrl)*1;
+    var month = __getUrlParamValue("tt.month", _dataUrl)*1;
+    var m = getNextMonth(year, month);
+    _dataUrl = __setUrlParam(_dataUrl, "tt.year", m.year);
+    _dataUrl = __setUrlParam(_dataUrl, "tt.month", m.month);
+    load();
+  }
+
+  function load() {
+    _oXml.onreadystatechange = notify;
+    _oXml.load(__noCacheUrl(_dataUrl));
+    _domFillMonth.innerHTML = "请稍候...";
+  }
+
+  function setYM($y, $m) {
+    _dataUrl = __setUrlParam(_dataUrl, "tt.month", $m);
+    _dataUrl = __setUrlParam(_dataUrl, "tt.year", $y);
+  }
+
+  function notify() {
+   if (_oXml.readyState == 4){
+      var err = _oXml.parseError;
+      if (err.errorCode!=0) {
+        return;
+      }
+      if (!__xmlErrorHandler(_oXml))
+      	return;
+      build();
+    }
+  }
+
+  function build() {
+    _iTd = 0;
+    _nodeRoot = _oXml.documentElement;
+   	removeTrs();
+
+   	/** 先创建Tr列表 */
+   	createTrs(_nodeRoot);
+
+   	_domTds = _domFillBody.all.tags("TD");
+   	var nodeCurrent = _nodeRoot.selectSingleNode("/calendar/currentDays");
+   	_currentMonth = nodeCurrent.getAttribute("month");
+   	_currentYear = nodeCurrent.getAttribute("year");
+   	var currentDays = nodeCurrent.getAttribute("days")*1;
+    _today = nodeCurrent.getAttribute("today");
+
+   	/** 开始填写内容至显示的Table当中 */
+   	var nodePrevDays = _nodeRoot.selectSingleNode("/calendar/prevDays");
+   	_iYear = _currentYear;
+   	if (nodePrevDays!=null) {
+
+   	  /* 如果当前月为1月那么年需要减少 */
+   	  if (_currentMonth==0) {
+   	    _iYear--;
+   	  }
+
+   	  _iMonth = nodePrevDays.getAttribute("month");
+   	  var start = nodePrevDays.getAttribute("start");
+   	  var end = nodePrevDays.getAttribute("end");
+
+   	  for (; start<=end; start++) {
+   	    paint(start);
+   	    _iTd++;
+   	  }
+   	}
+
+   	_iYear = _currentYear;
+   	/** 开始画当月的日子 */
+   	for (var i=1; i<=currentDays; i++) {
+   	  _iMonth = _currentMonth;
+   	  paint(i);
+   	  _iTd++;
+   	}
+
+   	/** 填写结束的内容 */
+   	var nodeNextDays = _nodeRoot.selectSingleNode("/calendar/nextDays");
+   	if (nodeNextDays!=null) {
+   	  /** 如果当前月是12月，那么需要加年的 */
+   	  if (_currentMonth*1==11) {
+   	    _iYear++;
+   	  }
+   	  _iMonth = nodeNextDays.getAttribute("month");
+   	  var start = nodeNextDays.getAttribute("start");
+   	  var end = nodeNextDays.getAttribute("end");
+   	  for (; start<=end; start++) {
+   	    paint(start);
+   	    _iTd++;
+   	  }
+   	}
+
+   	paintEvents();
+
+   	/** 画出当前的日子 */
+   	var domTdToday = __get("D" + _today);
+   	if (domTdToday!=null) {
+   	    var dt = domTdToday;
+   	    dt.style.border = "2px solid #F7C604"; 
+   	    dt.style.fontWeight = "bold";
+   	    dt.style.fontSize = "14.8px";
+   	    dt.style.color = "red";
+   	}
+
+    _domFillMonth.innerHTML = _currentYear + "年" + (_currentMonth*1+1) + "月";
+
+    //画出未来三日的日程安排
+    var dT = _dEvts[_today];
+    var sb = [];
+    if (dT!=null) {
+      for (var i=0; i<dT.length; i++) {
+        sb.push("<span style='background-color:#ffcc00;padding:2px'>今天</span>：" + dT[i]);
+      }
+    }
+    dT = _dEvts[nodeCurrent.getAttribute("n1")];
+    if (dT!=null) {
+      for (var i=0; i<dT.length; i++) {
+        sb.push("<span style='background-color:#ADCEED;padding:2px'>明天</span>：" + dT[i]);
+      }
+    }
+    dT = _dEvts[nodeCurrent.getAttribute("n2")];
+    if (dT!=null) {
+      for (var i=0; i<dT.length; i++) {
+        sb.push("<span style='background-color:#C6DDC0;padding:2px'>后天</span>：" + dT[i]);
+      }
+    }
+    if (sb.length==0) {
+      _domTFoot.style.display = "none";
+    }else {
+      _domFillTroList.innerHTML = sb.join("<br>");
+      var as = _domFillTroList.all.tags("A");
+      for (var i=0; i<as.length; i++) {
+        __addEvent(as[i], "onclick", doClickEdit);
+      }
+      _domTFoot.style.display = "";
+    }
+  }
+
+  function doClickEdit() {
+    var d = event.srcElement;
+    d = __getReal(d, "tagName", "A");
+    var uuid = d.getAttribute("tt.uuid");
+    __open("/app/calendar/cal_edit.jsp?fromdesk=P&uuid=" + uuid, "width=600;height=350;center=true;fresh=true");
+  }
+
+  var _dEvts = [];
+  function paintEvents() {
+    _dEvts = [];
+    var nodeEvents = _nodeRoot.selectNodes("/calendar/event");
+    if (nodeEvents.length!=0) { //有事件
+      var nodeEvent = null;
+      var eventDomId = null;
+      for (var i=0; i<nodeEvents.length; i++) {
+        tmp = [];
+        nodeEvent = nodeEvents[i];
+        eventDomId = nodeEvent.getAttribute("day");
+        if (_dEvts[eventDomId]==null) {
+           _dEvts[eventDomId] = [];
+           setToHasEventStyle(eventDomId);
+        }
+        var tx = nodeEvent.selectSingleNode("content").text;
+        if (tx!="") {
+          tx = "<br>" + tx;
+        }
+        _dEvts[eventDomId].push("<a tt.uuid='" + nodeEvent.getAttribute("uuid") + "' href='javascript:;' style='letter-spacing:0px;color:black'>" + nodeEvent.selectSingleNode("title").text + "</a>" + tx);
+      }
+    }
+  }
+
+  function setToHasEventStyle($d) {
+    var d = __get("D" + $d);
+    if (d!=null) {
+      d.style.backgroundImage = "url('img/tt/ss.gif')";
+      d.style.backgroundRepeat = "no-repeat";
+      d.style.backgroundPosition = "bottom right";
+    }
+  }
+
+  function dayOnMouseDown() {
+    var dom = event.srcElement;
+    dom = __getReal(dom, "tagName", "TD");
+    var y = dom.getAttribute("y");
+    var m = dom.getAttribute("m");
+    var d = dom.getAttribute("d");
+    __open( _c + "/app/calendar/cal_add.jsp?fromdesk=P&year=" + y + "&month=" + m + "&day=" + d, "width=600;height=350;center=true;fresh=true");
+  }
+
+  function createDayMonthKey($month, $day) {
+    $month = $month + "";
+    $day = $day + "";
+    if ($month.length!=2) {
+      $month = "0" + $month;
+    }
+    if ($day.length!=2) {
+      $day = "0" + $day;
+    }
+    return $month + "" +  $day;
+  }
+
+  function paint($day) {
+    var tmp = [];
+    if (_iTd==0 || $day==1) {
+      tmp.push(_iMonth*1+1);
+      tmp.push("/");
+    }
+    tmp.push($day);
+
+    /** 如果不是当月背景色使用不同的 */
+    if (_iMonth!=_currentMonth) {
+      _domTds[_iTd].style.backgroundColor = "#FDFDEE";
+    }else {
+      _domTds[_iTd].style.backgroundColor = "#FFFFD6";
+    }
+
+    _domTds[_iTd].innerHTML = tmp.join("");
+
+    _domTds[_iTd].attachEvent("onmousedown", dayOnMouseDown);
+    _domTds[_iTd].attachEvent("onmouseover", doOVD);
+    _domTds[_iTd].attachEvent("onmouseout", doOUD);
+
+    /** 设置年与月日的属性至TD当中 */
+    _domTds[_iTd].setAttribute("y", _iYear);
+    _domTds[_iTd].setAttribute("m", _iMonth);
+    _domTds[_iTd].setAttribute("d", $day);
+    var k = createDayMonthKey(_iMonth, $day);
+    _domTds[_iTd].setAttribute("k", k);
+    /** 设置该TD的唯一标识，以便在下面画具体的事件 */
+    _domTds[_iTd].id = "D" + k;
+  }
+  var _lsOD = null;
+  function doOVD() {
+    var d = event.srcElement;
+    var srcColor = d.currentStyle.backgroundColor;
+    d.setAttribute("tt.src", srcColor);
+    d.style.backgroundColor = "#FEE59F";
+    var da = d.getAttribute("k");
+
+    _lsOD = da;
+    if (_dEvts[da]!=null) {
+      popupEvt(da);
+    }
+  }
+  var _gLayer = null;
+  var _gw = 200;
+  var _gh = 100;
+  function popupEvt($k) {   
+    var es = _dEvts[$k];
+    var d = __get("D" + $k);
+    var p = __getPos(d);
+    var tpx = p.x + d.clientWidth ;
+    var tpy = p.y + d.clientHeight - 23;
+    var y = d.getAttribute("y");
+    var m = d.getAttribute("m");
+    var d = d.getAttribute("d");
+    if (tpx+_gw>document.body.clientWidth-10) {
+       tpx = p.x - _gw + 1;
+    }
+    _gLayer.style.left = tpx;
+    _gLayer.style.top = tpy;
+    _gLayer.children[0].innerHTML = y + "年" + (m*1+1) + "月" + d + "日";
+    _gLayer.children[1].innerHTML = es.join("<br>");
+    _gLayer.style.display = "";
+  }
+  function hidePopup() {
+     if(_gLayer!=null) {
+       _gLayer.style.display = "none";
+     }
+  }
+  function doOUD() {
+    var d = event.srcElement;
+    var sc = d.getAttribute("tt.src");
+    d.style.backgroundColor = sc;
+    hidePopup();
+  }
+
+  /**
+   * 生成Tr的行显示
+   */
+  function createTrs($nodeRoot) {
+    var tmp = [];
+    var nodeStatic = $nodeRoot.selectSingleNode("/calendar/static");
+    var total = nodeStatic.getAttribute("days");
+    var iTrs = total/7;
+    for (var i=0; i<iTrs; i++) {
+      tmp.push("<tr id=DayTR><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>");
+    }
+    var rows = __tableRows(tmp.join(""));
+    for (var i=0; i<rows.length; i++) {
+      _domFillBody.appendChild(rows[i]);
+    }
+  }
+
+  function removeTrs() {
+    var rows = _domFillBody.rows;
+    for (var i=rows.length-1; i>=0; i--) {
+      _domFillBody.removeChild(rows[i]);
+    }
+  }
+}
+
+function window.onCalEventAdded() {
+  if (_deskCalIns!=null) {
+    _deskCalIns.reload();
+  }
+}
+_JUICECLASSES['DeskCalendar'] = DeskCalendar;
+
+
+  ]]></scripts>

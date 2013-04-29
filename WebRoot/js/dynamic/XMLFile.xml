@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="GB2312"?>
+<!--
+  动态脚本加载模式类
+	/**
+   * xml的管理工具，对xml文件的操作，读写查询
+   * @author: TANTOM
+   * @date: 愤怒猪头
+   */
+-->
+<scripts><![CDATA[
+function XMLFile() {
+  this.load = load;
+  this.save = save;
+  this.clone = clone;
+  this.getXmlDom = getXmlDom;
+  this.modifyCData = modifyCData;
+  this.getCData = getCData;
+  
+  var _axXmlDom = null;
+  var _xfile = null; //xml对象的XFile封装类
+  
+  /**
+   * 读取一个xml文件，并返回xml的文档对象
+   * @param $fileXml 为封装过的文件类型 org.tantom.io.XFile为实例
+   * @return xml文档对象
+   */
+  function load($fileXml) {
+    _xfile = $fileXml;
+    try {
+      getXmlDom().loadXML($fileXml.getContentAsText());
+  	}catch(e) {
+  	  throw new Error("读取XML内容失败:" + e.description);
+    }    
+  }
+  
+  /**
+   * 获得XML的Dom操作
+   */
+  function getXmlDom() {
+    if (_axXmlDom==null) {
+      _axXmlDom = new ActiveXObject("Microsoft.XMLDOM");
+      _axXmlDom.validateOnParse = false;
+    }
+    return _axXmlDom;
+  }
+  
+  /**
+   * 修改某个节点的内容
+   * @param $parentNode 父亲Node节点
+   * @param $xpath XPath的标识
+   * @param $data 数据
+   */
+  function modifyCData($parentNode, $xpath, $data) {
+    var node = $parentNode.selectSingleNode($xpath);
+    var cdata = getXmlDom().createCDATASection($data);
+    node.nodeTypedValue = "";
+    node.appendChild(cdata);
+  }
+  
+  /**
+   * 保存修改
+   */
+  function save() {
+    getXmlDom().save(_xfile.getPath());
+  }
+  
+  /**
+   * 复制一个node的全部内容做为另一个node的子
+   */
+  function clone($node, $nodeParent) {
+    return $nodeParent.appendChild($node.cloneNode(true));
+  }
+  
+  /**
+   * 获得某个节点的内容
+   */
+  function getCData($node, $xpath) {
+    var node = $node.selectSingleNode($xpath);
+    return node.text;
+  }
+}
+    ]]></scripts>

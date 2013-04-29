@@ -1,0 +1,478 @@
+<?xml version="1.0" encoding="GB2312"?>
+<scripts><![CDATA[
+/**
+ * 处理流程的签意见
+ */
+function WFComment() {
+  var _xmlComment = null;
+  var _rootNode = null;
+  var _paramNode = null;
+  var _oXml = __getXmlObject();
+  var _dataUrl = _c + "/workflow/xml/WFComment.jsp";
+  var _domInsert = null;
+  var _domLoading = null;
+  var _template = null;
+  var _bView = false;
+  var _bAdmin = false;
+  var _bNoAdmin = false;
+  var _caseTypeId = "";
+  var _procInsId = "";
+  var _viewer = "";
+  
+  window.attachEvent("onunload", clear);
+
+  function clear() {
+    if (_oXml!=null) {
+      _oXml.onreadystatechange = new Function("return false;");
+      _oXml = null;
+    }
+  }
+
+  var _tdLen = null;
+  /**
+   * 初始化组件
+   */
+  this.init = init;
+
+  function init($dom) {
+    _bView = $dom.getAttribute("tt.view")=="true";
+    _bNoAdmin = $dom.getAttribute("tt.noadmin")=="true";
+    _xmlComment = $dom.children[0];
+    _rootNode = _xmlComment.documentElement;
+    _paramNode = _rootNode.selectSingleNode("params");
+    _template = _rootNode.selectSingleNode("template").text;
+    _domInsert = __get(_paramNode.getAttribute("dom"));
+    
+    var attrs = _paramNode.attributes;
+    _procInsId = _paramNode.getAttribute("procInsId");
+    var ut = [];
+    for (var i=0; i<attrs.length; i++) {
+      ut.push(attrs[i].name + "=" + attrs[i].value);
+    }
+    _dataUrl += "?" + ut.join("&");
+
+    var domTable = __getReal(_domInsert, "tagName", "TABLE");
+    var cells = domTable.rows[0].cells;
+    var c = 0;
+    for (var i=0; i<cells.length; i++) {
+      var cs = cells[i].getAttribute("colspan");
+      if (cs!=null) {
+        c += cs;
+      }else {
+        c++;
+      }
+    }
+
+    _tdLen = c;
+
+    /**
+     * 启动一个XMLHTTP去读取这个流程相关的XML内容
+     */
+    load();
+    window._WFC = this;
+  };
+
+  /**
+   * 是否有签意见的按钮
+   */
+  this.isHasSignButton = function isHasSignButton() {
+    if (_domInsert==null) {
+      return false;
+    }
+    if (_domInsert.all.BtnOptionSave!=null) {
+      return true;
+    }
+  };
+
+  /**
+   * 同步保存，该操作会在提交数据进行下一步时先执行
+   */
+  this.asyncSave = function() {
+    if (!isHasSignButton()) {
+      return true;
+    }
+    var cmtVal = _domInsert.all.DomComment.value;
+    // 新会财政OA，不需要提示这个。他们99%都不输意见的，如果没有意见，默认为“同意办理。”
+    if (__isEmpty(cmtVal)) {
+       _domInsert.all.DomComment.value = "同意办理。";
+      //if (!confirm("你还没输入意见，确认不输入意见继续进行下一步吗？")) {
+      //  return false;
+      //}
+    }
+    if (cmtVal.length>800) {
+      alert("意见内容过长，请精简输入的意见内容(最大800个字符)");
+      return false;
+    }
+    prepareValues();
+    var url = _c + "/workflow/engine/action/wf_sign_comment_v3action.jsp";
+    _Xuice.xpost(__get("signForm"), url, false, afterSave);
+    function afterSave($doc) {      
+    }
+    return true;
+  };
+
+  /**
+   * 重新加载内容
+   */
+  this.reload = reload;
+  function reload() {
+    if (_domInsert.innerHTML!="") {
+      var rows = _domInsert.rows;
+      for (var i=rows.length-1; i>=0; i--) {
+        rows[i].removeNode(true);
+      }
+
+      load();
+    }
+  };
+
+  /**
+   * 读取内容
+   */
+  function load() {
+    setLoading(true);
+    _oXml.async = true;
+    _oXml.onreadystatechange = notify;
+    _oXml.load(__noCacheUrl(_dataUrl));
+  }
+
+  function setLoading($b) {
+    if ($b) {
+      var tmp = "<TR><td colspan=" + _tdLen + "></td></TR>";
+      var domTr = __tableRows(tmp)[0];
+      _domLoading = _domInsert.appendChild(domTr);
+      _domLoading.cells[0].innerHTML = "<img src=" + _c + "/img/wait.gif align=absbottom> 正在加载数据，请稍候...";
+      _domLoading.style.display = "";
+    }else {
+      _domLoading.removeNode(true);
+    }
+  }
+
+  /**
+   * 读取成功后处理
+   */
+  function notify() {
+    if (_oXml.readyState == 4){
+      var err = _oXml.parseError;
+      if (err.errorCode!=0) {
+        alert("读取数据时出现错误: ERROCODE: 001(可能是你长时间没有操作所至，请重新登录)");
+        return;
+      }
+
+      if (!__xmlErrorHandler(_oXml, _domLoading.cells[0])) {
+        return;
+      }
+      setLoading(false);
+     
+      var cms = _rootNode.selectNodes("comment");
+      var cm = null;
+      var trHtml = null;
+      var domTr = null;
+      var rsNode = _oXml.documentElement;
+
+      var bSignOption = "true"==rsNode.getAttribute("hasSignOption")?true:false;
+      var bMend = "true"==rsNode.getAttribute("hasMend")?true:false;
+      _bAdmin = "true"==rsNode.getAttribute("isAdmin")?true:false;
+
+      _caseTypeId = rsNode.getAttribute("caseTypeId");
+      _viewer = rsNode.getAttribute("viewer");
+      var aliasType = null;
+      if (bSignOption) {
+        aliasType = rsNode.selectSingleNode("alias-type-id").text;
+      }
+
+      var typeName = null;
+      var cmName = null;
+      var commentStr = null;
+
+      for (var i=0; i<cms.length; i++) {
+        cm = cms[i];
+        typeName = cm.getAttribute("type");
+        cmName = cm.getAttribute("name");
+        cmName = cmName.replace("\\n", "<br>");
+        trHtml = _template.replace("$name", cmName);
+        commentStr = getComment(rsNode, typeName, bSignOption, aliasType);
+
+        if (commentStr.length==0) { //防止TD显示空的边框
+          commentStr = "&nbsp;";
+        }
+        
+        trHtml = trHtml.replace("$comment", commentStr);
+
+        domTr = __tableRows(trHtml)[0];
+        _domInsert.appendChild(domTr);
+
+        if (_bAdmin) {
+          var ds = domTr.all['BTNEdit'];
+          if (ds!=null) {
+            if (typeof(ds.length)!="undefined") {
+              for (var j=0; j<ds.length; j++) {
+                ds[j].attachEvent("onclick", modifyComment);
+              }
+            }else {
+              ds.attachEvent("onclick", modifyComment);
+            }
+          }
+        }
+      }
+
+      /** 如果有签已经就加上事件的监控 */
+      if (bSignOption && !_bView) {
+        var domPublicList = _domInsert.all.DomPubList;
+        var domPersonalList = _domInsert.all.DomPerList;
+        if (domPublicList==null) {
+          return;
+        }
+
+        __addEvent(domPublicList, "onchange", doCommentChangeA);
+        __addEvent(domPersonalList, "onchange", doCommentChangeB);
+        var domSaveBtn = _domInsert.all.BtnOptionSave;
+        __addEvent(domSaveBtn, "onclick", doSaveComment);
+
+        /** 往页面插入一个表单做提交签意见使用 */
+        var tmp = [];
+        tmp.push("<form name=signForm method=post action=\"" + _c + "/workflow/engine/action/wf_sign_comment_v2action.jsp\">");
+        tmp.push("<input type=hidden name=CaseTypeID value=" + _paramNode.getAttribute("caseTypeID") + ">");
+        tmp.push("<input type=hidden name=CaseID value=" + _paramNode.getAttribute("caseID") + ">");
+        tmp.push("<input type=hidden name=ProcInsID value=" + _paramNode.getAttribute("ProcInsID") + ">");
+        tmp.push("<input type=hidden name=Publish value=" + _paramNode.getAttribute("Publish") + ">");
+        tmp.push("<input type=hidden name=Doc value=" + _paramNode.getAttribute("Doc") + ">");
+        tmp.push("<input type=hidden name=CreateDoc value=" + _paramNode.getAttribute("CreateDoc") + ">");
+        tmp.push("<input type=hidden name=GetFileNo value=" + _paramNode.getAttribute("GetFileNo") + ">");
+        tmp.push("<input type=hidden name=Complete value=" + _paramNode.getAttribute("Complete") + ">");
+        tmp.push("<input type=hidden name=ActivityInsId value=" + _paramNode.getAttribute("ActivityInsId") + ">");
+        tmp.push("<input type=hidden name=CommentTypeId>");
+        tmp.push("<input type=hidden name=txt_Comment>");        
+        tmp.push("</form>");
+        var html = tmp.join("");
+        document.body.insertAdjacentHTML("beforeEnd", html);
+      }
+      //alert(rsNode.xml);
+    }
+  }
+
+  /**
+   * 保存意见
+   */
+  function doSaveComment() {
+    if (_domInsert.all.DomComment.value.length>800) {
+      alert("意见内容过长，请精简输入的意见内容(最大800个字符)");
+      return false;
+    }
+    prepareValues();
+    __post("signForm");
+  }
+
+  //修改意见
+  function modifyComment() {
+    var d = event.srcElement;
+    var actInsId = d.getAttribute("tt.actInsId");
+    if (actInsId==null) {
+      alert("该意见不能进行修改！");
+      return;
+    }
+    __open(_c + "/workflow/xwf/wf_comment_edit.jsp?procInsId=" + _procInsId + "&caseTypeID=" + _caseTypeId + "&actInsId=" + actInsId, "width=400;height=300;center=true;fresh=true;title=修改流程意见", doCommentModifyClose);
+  }
+
+  function doCommentModifyClose() {
+    if (typeof(window.CommentNeedRefresh)!="undefined") {
+      if (window.CommentNeedRefresh==true) {
+        reload();
+        window.CommentNeedRefresh = false;
+      }
+    }
+
+  }
+
+  /**
+   * 先设置好变量
+   */
+  function prepareValues() {
+    __get("txt_Comment").value = _domInsert.all.DomComment.value;
+    __get("CommentTypeId").value = _domInsert.all.DomCommentTI.value;
+  }
+
+  /**
+   * 意见选择改变
+   */
+  function doCommentChangeA() {
+    var ed = event.srcElement;
+    var d = _domInsert.all.DomComment;
+    d.value = d.value + ed.value;
+    d.focus();
+    try {
+      ed.parentElement.all.DomPerList.value = '';
+    }catch(e){}
+  }
+
+  function doCommentChangeB() {
+    var ed = event.srcElement;
+    var d = _domInsert.all.DomComment;
+    d.value = d.value + ed.value;
+    d.focus();
+    try {
+      _domInsert.all.DomPubList.value = '';
+    }catch(e){}
+  }
+
+  /**
+   * 获得签意见的HTML代码
+   */
+  function getSignHtml($rsNode, $cmtType) {
+
+    var publicNodes = $rsNode.selectNodes("public-comment/op");
+    var personalNodes = $rsNode.selectNodes("personal-comment/op");
+    var commentTypeId = $rsNode.selectSingleNode("alias-type-id").text;
+    var lastComment = $rsNode.selectSingleNode("signed-comment");
+
+    var sbPublic = [];
+    sbPublic.push("<select name=DomPubList><option value=''></option>");
+    var comment = null;
+    for (var i=0; i<publicNodes.length; i++) {
+      comment = publicNodes[i].text;
+      sbPublic.push("<option value=\"" + comment + "\">" + comment + "</option>");
+    }
+    sbPublic.push("</select>");
+    var sbPersonal = [];
+    sbPersonal.push("<select name=DomPerList><option value=''></option>");
+    for (var i=0; i<personalNodes.length; i++) {
+      comment = personalNodes[i].text;
+      var c = null;
+      if (comment.length>25) {
+        c = comment.substr(0,25);
+      }else {
+        c = comment;
+      }
+      sbPersonal.push("<option value=\"" + comment + "\">" + c + "</option>");
+    }
+    sbPersonal.push("</select>");
+
+    var tmp = [];
+    tmp.push("<img src=" + _c + "/img/xp/m8.gif align=absbottom><span id=SignTitle style='color:#800000'>请签意见：</span>");
+    tmp.push("<div style='width:100%'>");
+    tmp.push('<textarea class="ip_textarea"');
+    tmp.push(' id=DomComment name=DomComment style="color:mediumblue; HEIGHT: 80px">');
+    if (lastComment!=null) {
+      tmp.push(lastComment.text);
+    }else {
+      tmp.push($rsNode.selectSingleNode("signed-comment").text);
+    }
+    tmp.push('</textarea>');
+    tmp.push("<input type=hidden name=DomCMTID id=DomCommentTI value=" + commentTypeId + ">");
+    tmp.push("</div>");
+    tmp.push("<div style='padding-top:4px'>");
+    tmp.push("常用意见：" + sbPublic.join(""));
+    tmp.push("&nbsp; ");
+    tmp.push("个人意见：" + sbPersonal.join(""));
+    tmp.push("&nbsp; <input type=button value=保存意见 id=BtnOptionSave style='display:none'>");
+    tmp.push("</div>");
+    return tmp.join("");
+  }
+
+  /**
+   * 生成comment的内容
+   */
+  function getComment($rsNode, $type, $bSignOption, $aliasType) {
+    //alert($type + "/" + $bSignOption + "/" + $aliasType);
+    var tmp = [];
+    var xpath = "comment[@type='" + $type + "']";
+    var cmNodes = $rsNode.selectNodes(xpath);
+    if (cmNodes.length==0) {
+       if ($bSignOption && !_bView) {
+        if ($type==$aliasType){
+          var signedOption = $rsNode.selectSingleNode("signed-comment").text;
+          tmp.push(getSignHtml($rsNode, $type));
+        }
+       }
+      return tmp.join("");
+    }
+    var tmp = [];
+    var cm = null;
+    var nodeLen = cmNodes.length;
+    for (var i=0; i<cmNodes.length; i++) {
+      cm = cmNodes[i];
+      var result = "";
+      /*=========================CA签名验证（用第三版本接口实现,不需要key）=========*/
+
+        var topWin = top;
+        try {
+            if (typeof(top._bMain)=="undefined" && typeof(top._isModalWin)=="undefined") { //在新窗口打开
+               topWin = top.opener.opener.top;
+            }
+        }catch(e) { //如果出现错误就用Xuice来读取后台取信息
+
+        }
+
+      tmp.push("<div style='width:100%'>");
+      tmp.push(cm.text.replace(/\n/g, "<br>"));
+      tmp.push("&emsp;&emsp;");
+      tmp.push(result);
+      tmp.push("</div><div style='width:100%;text-align:right;padding-right:20px'>");
+      tmp.push(cm.getAttribute("un"));
+      tmp.push("&nbsp;");
+      var dt = cm.getAttribute("date");
+      tmp.push(ft(dt));
+      if (_bAdmin && !_bNoAdmin) {       ;
+        tmp.push("<img src=\"" + _c + "/img/xp4/ne.gif\" alt=\"编辑意见\" align=absbottom id=BTNEdit style=\"cursor:hand\" tt.procInsId=\"" + cm.getAttribute("actinsid") + "\" tt.actInsId=\"" + cm.getAttribute("actinsid") +"\">");
+      }
+      tmp.push("</div>");
+      //存在多个意见时,为方便分辨签意见的人员和意见的对应关系,加个"水平线"
+      if(nodeLen>1&&i<nodeLen-1){
+        tmp.push("<hr width='96%' style=\"border:1px dashed #CCCCCC; height:1px\">");
+      }
+    }
+     /** 如果有签意见有显示签意见的输入框 */
+    if ($bSignOption && !_bView) {
+      if ($type==$aliasType) {
+        var signedOption = $rsNode.selectSingleNode("signed-comment").text;
+        var signHtml = getSignHtml($rsNode, $type);
+        if (!__isEmpty(signedOption)) { //不会空才移除最后一个
+          /** 移除最后一个 */
+          //tmp.pop();
+          signHtml = signHtml.replace("请签意见", "修改意见");
+        }
+        tmp.push(signHtml);
+      }
+    }
+    return tmp.join("");
+  }
+  var _dx = new Date();
+  var dMonth = null;
+  var dDate = null;
+  var dHour = null;
+  var dMinute = null;
+  //格式化时间
+  function ft($l) {
+    _dx.setTime($l);
+    if(_dx.getMonth()+1 < 10){
+      dMonth = "0" + (_dx.getMonth()+1);
+    }else{
+      dMonth = _dx.getMonth()+1;
+    }
+    if(_dx.getDate() < 10){
+      dDate = "0" + _dx.getDate();
+    }else{
+      dDate = _dx.getDate();
+    }
+    if(_dx.getHours() < 10){
+      dHour = "0" + _dx.getHours();
+    }else{
+      dHour = _dx.getHours();
+    }
+    if(_dx.getMinutes() < 10){
+      dMinute = "0" + _dx.getMinutes();
+    }else{
+      dMinute = _dx.getMinutes();
+    }
+    //如果“时”和“分”都为0，则只用显示日期
+    if(_dx.getHours()==0 && _dx.getMinutes()==0){
+      return _dx.getYear() + "年" + dMonth + "月" + dDate + "日 ";
+    }else{
+      return _dx.getYear() + "年" + dMonth + "月" + dDate + "日 " + dHour + ":" + dMinute;
+    }
+  }
+}
+_JUICECLASSES['WFComment'] = WFComment;
+
+
+]]></scripts>

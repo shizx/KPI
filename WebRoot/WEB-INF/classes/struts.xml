@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE struts PUBLIC
+	"-//Apache Software Foundation//DTD Struts Configuration 2.1//EN"
+	"http://struts.apache.org/dtds/struts-2.1.dtd">
+<struts>
+
+	<constant name="struts.i18n.encoding" value="UTF-8"></constant>
+	<!-- 开发模式 -->
+	<constant name="struts.devMode" value="true" />
+	
+	<constant name="struts.ognl.allowStaticMethodAccess" value="true" />
+
+	<!-- 登录模块 -->
+	<package name="login" extends="struts-default" namespace="/">
+		<action name="login" class="com.zuyue.action.LoginAction" method="login">
+			<result name="success">/index.jsp</result>
+			<result name="error">/login.jsp</result>
+		</action>
+	</package>
+	
+	<!-- 用户管理模块 -->
+	<package name="userManager" extends="struts-default" namespace="/userManager">
+		<action name="*" class="com.zuyue.action.UserManagerAction" method="*">
+			<result name="list">/userManager/user_list.jsp</result>
+			<result name="add">/userManager/user_add.jsp</result>
+		</action>		
+	</package>
+	
+	<!-- 机构管理模块 -->
+	<package name="orgManager" extends="struts-default" namespace="/orgManager">
+		<action name="*" class="com.zuyue.action.OrgManagerAction" method="{1}">
+			<result name="add">/orgManager/org_add.jsp</result>
+			<result name="list">/orgManager/org_list.jsp</result>
+		</action>
+	</package>
+	
+	<!-- 指标管理模块 -->
+	<package name="kpiManager" extends="struts-default" namespace="/kpiManager">
+		<action name="*" class="com.zuyue.action.KpiManagerAction" method="*">
+			<result name="list">/kpiManager/kpi_list.jsp</result>
+			<result name="add">/kpiManager/kpi_add.jsp</result>
+			<result name="edit">/kpiManager/kpi_add.jsp</result>
+		</action>
+		
+
+	</package>
+
+    <!-- 指标值管理 -->
+    <package name="kpiValueManager" extends="struts-default" namespace="/kpiValueManager">
+        <action name="*" class="com.zuyue.action.KpiManagerAction" method="*">
+            <result name="list">/kpiValueManager/kpi_value_list.jsp</result>
+            <result name="add">/kpiValueManager/kpi_value_add.jsp</result>
+        </action>
+    </package>
+	
+	<!-- 报表管理 -->
+	<package name="reportManager" extends="struts-default" namespace="/reportManager">
+		<!-- 完成情况报表 -->
+		<action name="completeStatus" class="com.zuyue.action.ReportManagerAction" method="completeStatus">
+			<result name="report">/reportManager/completeStatusReport.jsp</result>
+		</action>
+		
+		<!-- 情况分析报表 -->
+		<action name="statusAnalysis" class="com.zuyue.action.ReportManagerAction" method="statusAnalysis">
+			<result name="report">/reportManager/statusAnalysisReport.jsp</result>
+		</action>
+		
+		<!-- 情况分析报表 -->
+		<action name="generateCompositeReport" class="com.zuyue.action.ReportManagerAction" method="generateCompositeReport">
+			<result name="report">/reportManager/generateCompositeReport.jsp</result>
+		</action>
+		
+		
+	</package>
+	
+</struts>
+	

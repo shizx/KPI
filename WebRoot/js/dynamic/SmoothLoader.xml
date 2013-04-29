@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="GB2312"?>
+<scripts><![CDATA[
+function SmoothLoader() {
+  var _pHtml = "<div onmousedown='event.cancelBubble=true;' style='position:absolute; left:2px; top:2px;z-index:199;color:black;visibility:hidden;overflow-y:auto;overflow-x:hidden'><TABLE class=rno cellSpacing=0 cellPadding=0><TBODY>";
+      _pHtml += "<TR><TD><B class=rnd><B class=rnd1></B><B class=rnd2></B></B><TR><TD style='padding:2 8 2 8'><TR><TD><B class=rnd><B class=rnd2></B><B class=rnd1></B></B></TR></TBODY></TABLE></div>";
+  var _node = __createElementByHTML(_pHtml);
+  document.body.insertAdjacentElement("beforeEnd", _node);
+  var _msgNode = _node.children[0].rows[1].cells[0];
+
+  //开始读取信息，需要提供在读取信息时提示用户的语句，如“正在检查身体是否健康等”
+  this.startLoad = function($msg, $url, $callBack) {
+    //显示一个图层来标识正在进行当中
+    showWaiting($msg);
+    _Xuice.url($url, notify, true);
+    function notify($doc, $err) {
+       hide();
+       $callBack($doc);
+    }
+  };
+
+  //显示结果
+  this.showResult = function($msg) {
+    _msgNode.innerHTML = $msg;
+    if(_node.clientHeight+_node.offsetTop>document.body.clientHeight){
+      _node.style.height = document.body.clientHeight-_node.offsetTop-10;
+    }
+
+    if (_lastEvtX + _node.clientWidth + 10>document.body.clientWidth) {
+      _node.style.left = _lastEvtX - _node.clientWidth;
+    }else {
+      _node.style.left = _lastEvtX;
+    }
+    _node.style.top = _lastEvtY + document.body.scrollTop;
+    _node.style.visibility = "visible";
+
+    document.body.attachEvent("onmousedown", hideRes);
+
+    // 隐藏页面中所有select
+    __killSelects(_node, __getRect(_node));
+  };
+  var _layerNode = null;
+  this.showLayer = function($html) {
+    if (_layerNode==null) {
+      var sb = "<div onmousedown='event.cancelBubble=true;' style='position:absolute; left:2px; top:2px;z-index:199;color:black;visibility:hidden'></div>";
+      _layerNode = __createElementByHTML(sb);
+      document.body.insertAdjacentElement("beforeEnd", _layerNode);
+    }
+
+    if ($html!=null) {
+      _layerNode.innerHTML = $html;
+      if (_lastEvtX + _layerNode.clientWidth + 10>document.body.clientWidth) {
+        _layerNode.style.left = _lastEvtX - _layerNode.clientWidth;
+      }else {
+        _layerNode.style.left = _lastEvtX;
+      }
+      _layerNode.style.top = _lastEvtY + document.body.scrollTop;
+      _layerNode.style.visibility = "visible";
+    }else {
+      if (event.x + _layerNode.clientWidth + 10>document.body.clientWidth) {
+        _layerNode.style.left = event.x - _layerNode.clientWidth;
+      }else {
+        _layerNode.style.left = event.x;
+      }
+      _layerNode.style.top = event.y + document.body.scrollTop;
+      _layerNode.style.visibility = "visible";
+    }
+
+
+    document.body.attachEvent("onmousedown", hideLayer);
+  };
+
+  function hideRes() {
+    hide();
+    document.body.detachEvent("onmousedown", hideRes);
+  }
+
+  this.hideLayer = function hideLayer() {
+    _layerNode.style.visibility = "hidden";
+    document.body.detachEvent("onmousedown", hideLayer);
+  }
+
+  var _lastEvtX = 0;
+  var _lastEvtY = 0;
+  function placeToEventPos() {
+    if (event.x + _node.clientWidth + 10>document.body.clientWidth) {
+      _node.style.left = event.x - _node.clientWidth;
+    }else {
+      _node.style.left = event.x;
+    }
+    _node.style.top = event.y + document.body.scrollTop;
+    _node.style.visibility = "visible";
+    _lastEvtX = event.x;
+    _lastEvtY = event.y;
+  }
+
+  function showWaiting($msg) {
+    _msgNode.innerHTML = $msg;
+    placeToEventPos();
+  }
+
+  function hide() {
+    _node.style.visibility = "hidden";
+   __releaseSelects();
+  }
+}
+]]></scripts>

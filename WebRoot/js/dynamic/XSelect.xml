@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="GB2312"?>
+<scripts><![CDATA[
+function XSelect() {
+
+    var dElement = null;
+    var oModel = null;
+    var oViewer = null;
+
+    this.init = init;
+
+    function init($dom) {
+        dElement = $dom;
+        oModel = new XSelectModel();
+
+        oModel.name = dElement.getAttribute('name');
+        oModel.selected = dElement.getAttribute('tt.selected');
+        oModel.required = dElement.getAttribute('tt.required');
+        oModel.comment = dElement.getAttribute('tt.comment');
+        oModel.multiColumn = dElement.getAttribute('tt.column');
+        oModel.columnWidth = dElement.getAttribute('tt.columnWidth');
+        oModel.options = parseOptions(dElement);
+
+        if (eval('window.' + oModel.name + '_onchange') != null) {
+            oModel.oCallback.onchange = eval(oModel.name + '_onchange');
+        }
+
+        oViewer = new XSelectViewer();
+
+        oViewer.render(dElement, oModel);
+    }
+
+    function parseOptions($dElement) {
+        var tmp = [];
+        var opts = [];
+        var chs = $dElement.childNodes;
+        var len = chs.length;
+        for (var i = 0; i < len; i++) {
+            var d = chs[i];
+            if (d.nodeType == 1) {
+                var item = [];
+                item.value = d.getAttribute('value');
+                item.desc = d.innerHTML;
+                item.img = d.getAttribute('img');
+                opts.push(item);
+                tmp.push(d);
+            }
+        }
+        // 分析完毕后，移除它们
+        for (var i = 0; i < tmp.length; i++) {
+            tmp[i].parentNode.removeChild(tmp[i]);
+        }
+        return opts;
+    }
+}
+
+function XSelectModel() {
+    this.name;
+
+    this.selected;
+
+    this.options;   // array [item.value, item.desc, item.img]
+
+    this.multiColumn;    // 如果这里不为空，且值大于1，则启用一行多列模式0
+
+    this.columnWidth;   // 每列的宽度
+
+    this.required;      // 是否为必须输入
+    this.comment;
+
+    this.isOptionsOpened = false;   // 下拉列表当年是不是打开状态
+
+    this.oCallback = {}; // { onchange }
+
+    this.scrollHeight = 200;
+}
+
+function XSelectViewer() {
+
+    var dElement = null;
+    var oModel = null;
+
+    var dXSelect = null;    // 整个XSelect组件的容器
+    var dComboBox = null;   // 整个select选项框的容器
+    var dInput = null;      // select input 显示值
+    var dInputValue = null; // select input 真正值
+    var dTrigger = null;    // select 的下拉图标
+    var dOption = null;     // option选项的容器
+
+    this.render = render;
+
+    function render($dElement, $oModel) {
+        dElement = $dElement;
+        oModel = $oModel;
+
+        dXSelect = __createElementByHTML('<div class="x-select"></div>');
+        dComboBox = buildComboBox($oModel);
+        dXSelect.insertAdjacentElement('afterBegin', dComboBox);
+
+        dElement.appendChild(dXSelect);
+
+        // 处理默认值
+        if (oModel.selected != null) {
+            var opts = $oModel.options;
+            var len = opts.length;
+            for (var i = 0; i < len; i++) {
+                var opt = opts[i];
+                if (opt.value == oModel.selected) {
+                    var t = document.createElement('SPAN');
+                    t.innerHTML = opt.desc;
+                    dInput.innerHTML = t.innerText;
+                    dInputValue.value = opt.value;
+                }
+            }
+        }
+
+        if (oModel.required) {
+            dInputValue.setAttribute('tt.require', 'true');
+            dInputValue.setAttribute('tt.comment', oModel.comment);
+        }
+    }
+
+    function buildComboBox($oModel) {
+        /*
+        var t = '<table class="x-select-combo" cellspacing="0" cellpadding="0"><tr><td>' +
+                '<input type="text" name="' + $oModel.name + '_show" class="x-select-combo-text" readOnly="readOnly"/>' +
+                '<input type="hidden" name="' + $oModel.name + '"/>' +
+                '</td><td class="x-select-combo-trigger"><img src="' + _c + '/img/juice/xselect/s.gif"/></td></tr></table>';
+        */
+        var t = '<table class="x-select-combo" cellspacing="0" cellpadding="0"><tr><td>' +
+                '<span id="' + $oModel.name + '_show" class="x-select-combo-text"></span>' +
+                '<input type="hidden" name="' + $oModel.name + '"/>' +
+                '</td><td class="x-select-combo-trigger"><img src="' + _c + '/img/juice/xselect/s.gif"/></td></tr></table>';
+        var d = __createElementByHTML(t);
+        //var ds = d.tBodies[0].rows[0].cells[0].firstChild.firstChild;
+
+        dInput = d.tBodies[0].rows[0].cells[0].firstChild;
+        dInputValue = d.tBodies[0].rows[0].cells[0].lastChild;
+        dTrigger = d.tBodies[0].rows[0].cells[1];
+        dTrigger.attachEvent('onmouseover', evtTriggerMouseOver);
+        dTrigger.attachEvent('onmouseout', evtTriggerMouseOut);
+        dTrigger.attachEvent('onmousedown', evtTriggerMouseDown);
+        dInput.attachEvent('onmousedown', evtTriggerMouseDown);    // 可以和上面共用一个事件来处理
+
+        return d;
+    }
+
+    function buildOptions($oModel) {
+
+        var wapper = createWapper();
+        
+        var wain = wapper.tBodies[0].rows[0].cells[0].firstChild;
+
+        var dTab = document.createElement('TABLE');
+        dTab.style.borderCollapse = "collapse";
+        dTab.cellSpacing = 0;
+        dTab.cellPadding = 0;
+        dTab.style.backgroundColor = 'white';
+        dTab.style.width = '100%';
+        dTab.style.height = '100%';
+        dTab.style.zIndex = '160';
+
+        var opts = $oModel.options;
+        var len = opts.length;
+        for (var i = 0; i < len; i++) {
+            var opt = opts[i];
+            var dTr = dTab.insertRow();
+            var dTd = dTr.insertCell();
+            dTd.style.borderWidth = '0 0 1 0';
+            dTd.style.borderColor = "white";
+            dTd.style.borderStyle = "solid";
+            dTd.style.padding = '2px 3px';
+            
+            var tmp = '<span tt.value="' + opt.value + '">';
+            if (opt.img != null) {
+                if (opt.img.indexOf(_c) != 0) {
+                    opt.img = _c + '/' + opt.img;
+                }
+                tmp = tmp + '<img src="' + opt.img + '" align="absbottom" />';
+            }
+            var desc = opt.desc == '' ? '&nbsp;' : opt.desc;
+            tmp = tmp + desc + '</span>';
+
+            dTd.innerHTML = tmp;
+            dTd.attachEvent('onmouseover', evtOptionMouseOver);
+            dTd.attachEvent('onmouseout', evtOptionMouseOut);
+            dTd.attachEvent('onmousedown', evtOptionMouseDown);
+        }
+
+        wain.appendChild(dTab);
+
+        return wapper;
+    }
+
+    function buildOptionsMultiColumn($oModel) {
+
+        var wapper = createWapper();
+
+        var wain = wapper.tBodies[0].rows[0].cells[0].firstChild;
+
+        var dTab = document.createElement('TABLE');        
+        dTab.style.borderCollapse = "collapse";
+        dTab.cellSpacing = 0;
+        dTab.cellPadding = 0;
+        dTab.style.backgroundColor = 'white';
+        dTab.style.width = '100%';
+        dTab.style.height = '100%';
+        dTab.style.zIndex = '160';
+
+        var column = $oModel.multiColumn;
+        var opts = $oModel.options;
+        var len = opts.length;
+        var i = 1;      // 第几个td
+        var idx = 0;    // opts的游标
+        var dTr, dTd;
+        var opt;         // 一个option的model
+        var width = 100 / column;
+        var bLastRow = false;
+        var currentRow = 0;
+        var totalRow = Math.ceil(len / column);
+        while (i <= column) {
+            if (i == 1) {
+                dTr = dTab.insertRow();
+                currentRow++;
+                if (currentRow >= totalRow) {
+                    bLastRow = true;
+                }
+            }
+            if (idx < len) {
+                opt = opts[idx];
+                var tmp = '<span tt.value="' + opt.value + '">';
+                if (opt.img != null) {
+                    if (opt.img.indexOf(_c) != 0) {
+                        opt.img = _c + '/' + opt.img;
+                    }
+                    tmp = tmp + '<img src="' + opt.img + '" align="absbottom" />';
+                }
+                tmp = tmp + opt.desc + '</span>';
+                dTd = dTr.insertCell();
+                __attachClass(dTd, 'x-select-optionx');
+                if (idx < column) {
+                    //__attachClass(dTd, 'x-select-option-first');
+                }
+                if (bLastRow) {
+                    //__attachClass(dTd, 'x-select-option-last');
+                }
+                dTd.setAttribute('width', width + '%');
+                dTd.innerHTML = tmp;
+                dTd.attachEvent('onmouseover', evtOptionMouseOver);
+                dTd.attachEvent('onmouseout', evtOptionMouseOut);
+                dTd.attachEvent('onmousedown', evtOptionMouseDown);
+            } else {
+                break;
+            }
+            if (i == column) {
+                i = 1;
+            } else {
+                i++;
+            }
+            idx++;
+        }
+        if (i != 1) {
+            for (; i <= column; i++) {
+                dTd = dTr.insertCell();
+                //__attachClass(dTd, 'x-select-option-last');
+                dTd.setAttribute('width', width + '%');
+                dTd.innerHTML = '&nbsp';
+            }
+        }
+
+        wain.appendChild(dTab);
+
+        return wapper;
+    }    
+
+    function evtTriggerMouseOver() {
+        var d = event.srcElement;
+        d = __getReal(d, 'tagName', 'TD');
+        d.className = 'x-select-combo-trigger x-select-combo-trigger-over';
+    }
+
+    function evtTriggerMouseOut() {
+        var d = event.srcElement;
+        d = __getReal(d, 'tagName', 'TD');
+
+        if (dOption != null && (dOption.style.display == '' || dInput.className.indexOf('x-select-combo-text-focus') != -1)) {
+            d.className = 'x-select-combo-trigger x-select-combo-trigger-focus';
+        } else {
+            d.className = 'x-select-combo-trigger';
+        }
+    }
+
+    function evtTriggerMouseDown() {
+        if (oModel.isOptionsOpened) {
+            evtBodyMouseDown();
+            return;
+        }
+        oModel.isOptionsOpened = true;
+
+        event.cancelBubble = true;
+        dTrigger.className = 'x-select-combo-trigger x-select-combo-trigger-focus';
+        dInput.className = 'x-select-combo-text x-select-combo-text-focus';
+
+        if (dOption == null) {
+            if (oModel.multiColumn != null && oModel.multiColumn > 1) {
+                dOption = buildOptionsMultiColumn(oModel);
+            } else {
+                dOption = buildOptions(oModel);
+            }
+            document.body.insertAdjacentElement('beforeEnd', dOption);
+            if (oModel.multiColumn != null && oModel.multiColumn > 1) {
+                if (oModel.columnWidth != null) {
+                    dOption.style.width = oModel.columnWidth * oModel.multiColumn + 'px';
+                } else {
+                    dOption.style.width = 90 * oModel.multiColumn + 'px';
+                }
+            } else {
+                dOption.style.width = dComboBox.offsetWidth + 'px';
+            }
+        }
+        document.body.attachEvent('onmousedown', evtBodyMouseDown);
+        dOption.style.display = '';          
+       __fixPos(dXSelect,dOption);
+       __glass();
+    }
+
+    function evtOptionMouseOut() {
+        var d = event.srcElement;
+        d = __getReal(d, 'tagName', 'TD');
+        __detachClass(d, 'x-select-option-over');
+    }
+
+    function evtOptionMouseOver() {
+        var d = event.srcElement;
+        d = __getReal(d, 'tagName', 'TD');
+        if (d != null) {
+            __attachClass(d, 'x-select-option-over');
+        }
+    }
+
+    function evtOptionMouseDown() {
+        __unglass();
+        oModel.isOptionsOpened = false;
+        event.cancelBubble = true;
+        var d = event.srcElement;
+        d = __getReal(d, 'tagName', 'TD');
+        d = d.firstChild;
+        dInput.innerHTML = d.innerText;
+        dInputValue.value = d.getAttribute('tt.value');
+        dOption.style.display = 'none';
+        if (oModel.oCallback.onchange != null) {
+            oModel.oCallback.onchange(dInput.innerHTML, dInputValue.value);
+        }
+    }
+
+    function evtBodyMouseDown() {
+        oModel.isOptionsOpened = false;
+        __unglass();
+        cleanStyle();
+        dOption.style.display = 'none';
+        document.body.detachEvent("onmousedown", evtBodyMouseDown);
+    }
+
+    function cleanStyle() {
+        dInput.className = 'x-select-combo-text';
+        dTrigger.className = 'x-select-combo-trigger';
+    }
+
+    function createWapper() {
+        var height = oModel.scrollHeight / 21;
+		height = height > oModel.options.length ? oModel.options.length * 21 : oModel.scrollHeight;
+		if (oModel.multiColumn != null && oModel.multiColumn > 1) {
+			height = Math.ceil(oModel.options.length / oModel.multiColumn) * 21;
+			height = height > oModel.scrollHeight ? oModel.scrollHeight : height; 
+		}
+        var html = '<table style="margin:0;padding:0;"><tr><td><div onmousedown="event.cancelBubble=true;" style="overflow:auto;height:' + height + 'px;"></div></td></tr></table>';
+        var wapper = __createElementByHTML(html);
+
+        wapper.style.display = 'none';
+        wapper.style.borderCollapse = "collapse";
+        wapper.cellSpacing = 0;
+        wapper.cellPadding = 0;
+        wapper.style.backgroundColor = 'white';
+        wapper.style.position = 'absolute';
+        wapper.style.borderWidth = '1px';
+        wapper.style.borderColor = '#7EADD9';
+        wapper.style.borderStyle = 'solid';
+        wapper.style.zIndex = '160';
+
+        return wapper;
+    }
+}
+
+_JUICECLASSES['XSelect'] = XSelect;
+]]></scripts>

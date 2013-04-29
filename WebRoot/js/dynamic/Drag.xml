@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="GB2312"?>
+<scripts><![CDATA[
+//))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+/**
+ * drag control set an object to be dragable
+ */
+//((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((
+/**
+ * set and juice dom uuid to an object
+ */
+function __setDomUuid($dom) {
+  $dom.setAttribute("tt.uuid", __uuid());
+  return __getDomUuid($dom);
+}
+/**
+ * get juice dom uuid
+ */
+function __getDomUuid($dom) {
+  return $dom.getAttribute("tt.uuid");
+}
+
+function Drag() {
+  var _hm = [];
+  var _activeObj = null;
+  var _ctObj = null;
+  var _x = null;
+  var _y = null;
+  var x = null;
+  var y = null;
+  var _os = null;
+  var _nX = null;
+  var _nY = null;
+
+  /**
+   * add an object to be dragable
+   */
+  this.add = add;
+
+  function add($domCt, $domMove) {
+    $domCt.attachEvent("oncontextmenu", disable);
+    $domCt.attachEvent("ondragstart", disable);
+    $domCt.attachEvent("onselectstart", disable);
+    $domCt.attachEvent("onmousedown", mousedown);
+
+    $domCt.setAttribute("tt.drag.control", "true");
+
+    if ($domMove==null)
+      $domMove = $domCt;
+    _hm[__setDomUuid($domCt)] = $domMove;
+  };
+
+  /**
+   * remove the object's dragable style
+   */
+  this.remove = remove;
+
+  function remove($domCt) {
+    $domCt.detachEvent("oncontextmenu", disable);
+    $domCt.detachEvent("ondragstart", disable);
+    $domCt.detachEvent("onselectstart", disable);
+    $domCt.detachEvent("onmousedown", mousedown);
+    _hm[__getDomUuid($domCt)] = null;
+  };
+
+  /**
+   * disalbed the event
+   */
+  function disable() {
+    window.event.returnValue = false;
+    window.event.cancelBubble = true;
+    return false;
+  }
+
+  /**
+   * when mouse down track the move status
+   */
+  function mousedown() {
+    _ctObj = window.event.srcElement;
+    _ctObj = __getReal(_ctObj, "tt.drag.control", "true");
+    var uuid = __getDomUuid(_ctObj);
+    if (uuid==null) {
+      return;
+    }
+
+    _ctObj.setCapture(true);
+    _activeObj = _hm[uuid];
+    //top(_activeObj);
+
+    document.attachEvent("onmousemove", mousemove);
+    document.attachEvent("onmouseup", mouseup);
+    _x = window.event.x;
+    _y = window.event.y;
+  }
+
+  /**
+   * mouse over tracker
+   */
+  function mousemove() {
+    x = window.event.x - _x ;
+    y = window.event.y - _y ;
+    _os = _activeObj.style;
+    if (_os.left=="") {
+      _nX = x;
+    }else {
+      _nX = parseInt(_os.left) + x;
+    }
+
+    if (_os.top=="") {
+      _nY = y;
+    }else {
+      _nY = parseInt(_os.top) + y;
+    }
+    if (_os!=null) {
+      _os.left = _nX ;
+      _os.top = _nY;
+    }
+    _x = window.event.x;
+    _y = window.event.y;
+    //__killSelects(_activeObj);
+  }
+
+  /**
+   * when mouse done
+   */
+  function mouseup() {
+    document.detachEvent("onmousemove", mousemove);
+    document.detachEvent("onmouseup", mouseup);
+    _ctObj.releaseCapture();
+    //check the window it's in document area,if no then restore
+    if (_os==null) {
+      return;
+    }
+    var l = parseInt(_os.left);
+    var t = parseInt(_os.top);
+    if (l<0) {
+      _os.left = "5px";
+    }
+    if (t<0) {
+      _os.top = "5px";
+    }
+  }
+
+  /**
+   * this use an hard code 20 here, i think when a page's layer not over 20,this it's
+   * ok, are you think so?
+   */
+  function top($dom) {
+    $dom.style.zIndex = ++__global_top;
+  }
+}
+  ]]></scripts>

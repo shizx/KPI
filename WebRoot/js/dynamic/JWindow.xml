@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="GB2312"?>
+<scripts><![CDATA[
+//))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+/**
+ * and window inner window use layer to be the layout
+ * @author: TANTOM
+ */
+//((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((
+function JWindow() {
+  var _panel = new JPanel();
+  var _panelNode = _panel.getNode();
+  _panelNode.className = "app-jwin-page-bgcolor";
+  var _shadowSize = 2;
+  var _shadowColor = "#D5D9DA";
+  var _style  = "BACKGROUND-COLOR: #4875AC;PADDING:2 3 2 8;VERTICAL-ALIGN: bottom;letter-spacing:2px;color: black;font-weight:bold;font-family:宋体;font-size:14px;border-width:0 0 1 0;border-color:#CCCCCC;border-style:solid;height:24px;background-image:url('" + _cc + "/img/jwin/b.gif');background-repeat:repeat-x;";
+  var _style1 = "BACKGROUND-COLOR: #4875AC;PADDING:0 5 4 3;VERTICAL-ALIGN: bottom;font-weight: normal;letter-spacing:4px;color: white;border-width:0 0 1 0;border-color:#CCCCCC;border-style:solid;height:24px;background-image:url('" + _cc + "/img/jwin/b.gif');background-repeat:repeat-x;";
+  var _sHtml = "<table cellspacing=0 cellpadding=0 ><tr><td><TABLE style='BACKGROUND-COLOR: white;TABLE-LAYOUT: fixed;WIDTH: 300px;HEIGHT: 100%;BORDER: 1px solid;BORDER-COLOR: #808080;' cellSpacing=0><TR height=18><TD style=\"" + _style + "\">" +
+               "</TD><td style=\"" + _style1 + "\" align=right valign=top><img style='cursor:hand' src=" + _cc + "/img/jwin/c.gif title='关闭窗口'></td></TR><tr><td colspan=2 align=center><img src=" + _cc + "/img/rloading.gif align=absmiddle></td></tr>" +
+               "<TR><TD style='HEIGHT:100%;padding:0px;margin:0px' colspan=2>" +
+               "<iframe name=JuiceFrame style='width:100%;height:100%' src='about:blank' FRAMEBORDER=0 ></iframe>" +
+               "</TD></TR></TABLE></td><td valign=top  style='padding-top:" + _shadowSize + "px;width:" + _shadowSize + "px'>" +
+               "<div style='width:100%;background-color:" + _shadowColor + "'></div></td></tr><tr><td style='padding-left:" + _shadowSize + "px;height:" + _shadowSize + "px;' colspan=2>" +
+               "<div style='width:100%;height:100%;background-color:" + _shadowColor + ";font-size:1px'></div></td></tr></table>";
+
+  _panelNode.innerHTML = _sHtml;
+  var _domPanel = _panelNode.children[0].rows[0].cells[0].children[0];
+  var _domBar = _domPanel.rows[0];
+  var _domLoadStatusTr = _domPanel.rows[1];
+  var _domFrameTr = _domPanel.rows[2];
+  var _domFrame = _domFrameTr.cells[0].children[0];
+  var _domClose = _domBar.cells[1].children[0];
+      __addEvent(_domClose, "onclick", closexp);
+  var _bLoading = false;
+  var _lastUrl = null;
+  var _params = null;
+  var _lW = null;
+  var _lH = null;
+  var _bMax = false;
+  var _domVLine = _panelNode.children[0].rows[0].cells[1].children[0];
+  __addEvent(_domBar, "ondblclick", maxsize);
+
+
+
+  /**
+   * open and jwin
+   */
+  this.open = open;
+
+  this.getContentWin = getContentWin;
+  function getContentWin() {
+    return _domFrame.contentWindow;
+  }
+
+  function open($sUrl, $params) {
+
+
+    if ($sUrl.indexOf("/")==0 && $sUrl.indexOf(_c)!=0) {
+      $sUrl = _c + $sUrl;
+    }
+    _params = __parseParams($params)
+   // _params = $params;
+
+    if (_params['noclose']==true) {
+      _domClose.style.display = "none";
+    }else {
+      _domClose.style.display = "";
+    }
+
+    if (_params['nohead']==true) {
+      _domBar.style.display = "none";
+    }else {
+      _domBar.style.display = "";
+    }
+   if (_lastUrl==$sUrl) {
+      if (_params['fresh']!=true) {
+        _panel.setVis(true);
+      }else {
+        setUI("LOADING");
+      }
+    }else {
+      _lastUrl = $sUrl;
+      setUI("LOADING");
+     }
+
+    /**
+     * 强制所有的窗口都可以拖动，除非加了notdrag属性
+     */
+    if (_params['notdrag']==true) {
+      _domBar.style.cursor = "default";
+      __loadScript("Drag", 1).remove(_domBar);
+    }else {
+      _domBar.style.cursor = "move";
+      __loadScript("Drag", 1).add(_domBar, _panelNode);
+    }
+  };
+
+  /** is it the window it's opened */
+  this.isOpen = isOpen;
+
+  function isOpen() {
+     return _panelNode.style.visibility=="visible";
+  };
+
+  /** when a page load if it has the special style then fix it */
+  this.loadFix = loadFix;
+
+  function loadFix() {
+    if (_domFrame.readyState!="complete") {
+      setTimeout(loadFix, 100);
+      return;
+    }
+    var db = _domFrame.contentWindow.document.body;
+    var p = db.getAttribute("tt.jwin");
+    if (p!=null) {
+      _params = __parseParams(p);
+      updateVision();
+    }
+
+    __hideSelects(_panelNode);
+    /** change the docuemnt title */
+    setTitle();
+    _domBar.style.display = "";
+    db.style.display = "";
+  };
+
+  function setTitle() {
+    _domBar.cells[0].innerHTML = "" + _domFrame.contentWindow.document.title + "&nbsp;";
+  }
+
+  /** set up the ui vision */
+  function setUI($type) {
+
+    switch($type) {
+      case "LOADING":
+        if (event!=null) {
+            _panelNode.style.top = event.y + document.body.scrollTop;
+            var ex = event.x + document.body.scrollLeft;
+            if (ex + 300>document.body.clientWidth) {
+              ex = ex - 300;
+            }
+            _panelNode.style.left = ex;
+        }
+
+        _domPanel.style.height = "auto";
+        _domPanel.style.width = "300";
+        _domBar.cells[0].innerHTML = "正在读取页面...";
+        _domLoadStatusTr.style.display = "";
+        _domFrameTr.style.display = "none";
+        _domFrame.onreadystatechange = notify;
+        _panel.setVis(true);
+        _bLoading = true;
+        _domFrame.src = __noCacheUrl(_lastUrl);
+
+        fixVLine();
+        break;
+      case "COMPLETE":
+        var db = _domFrame.contentWindow.document.body;
+
+        if (db==null)
+            return;
+        if (db.getAttribute("tt.height")!=null) {
+          _params['height'] = db.getAttribute("tt.height");
+        }
+
+        updateVision();
+        setTitle();
+        _domFrameTr.style.display = "";
+        _domLoadStatusTr.style.display = "none";
+        _domFrame.onreadystatechange = new Function("return false");
+        _bLoading = false;
+        /** set an attribute that i am in a jwin */
+        _domFrame.contentWindow.document.body.setAttribute("tt.isJwindow", "true");
+        if (typeof(_domFrame.contentWindow.onJwinComplete)!="undefined") {
+          var w = _domFrame.contentWindow;
+          checkComplete();
+          function checkComplete($fct) {
+            if (w._pageFullLoaded==false) {
+              setTimeout(checkComplete, 10);
+              return;
+            }
+            w.onJwinComplete();
+          }
+        }
+        break;
+      case "HIDE":
+        _panel.setVis(false);
+        return;
+        break;
+      case "MAXSIZE":
+        if (!_bMax) {
+          _lW = _domPanel.style.width;
+          _lH = _domPanel.style.height;
+          _domPanel.style.width = document.body.clientWidth - 20;
+          _domPanel.style.height = document.body.clientHeight - 20;
+          __center(_panelNode);
+          _bMax = true;
+        }else {
+          _domPanel.style.width = _lW;
+          _domPanel.style.height = _lH;
+          __center(_panelNode);
+          _bMax = false;
+        }
+        fixVLine();
+        break;
+    }
+    __hideSelects(_panelNode);
+  }
+
+
+
+  /**
+   * change the jwindow's position
+   */
+  function updateVision() {
+    /** set up the win style by the params */
+      var sw = top._sw;
+      /** if 800*600 use relate  */
+      if (typeof(sw)=="undefined") {
+        sw = screen.availWidth;
+      }
+
+      if (sw<1000) {
+          _params['relate'] = 0.97;
+      }
+    if (_params['relate']!=null) {
+      _domPanel.style.width = document.body.clientWidth * _params['relate'];
+      _domPanel.style.height = document.body.clientHeight * _params['relate'];
+    }else {
+      /** 如果是大字体模式时有提供高与宽的都增加40*/
+      if ("B"==_MY_SET['Style']) {
+        if (_params['width']!=null) {
+          _params['width'] = _params['width']*1+60;
+        }
+        if (_params['height']!=null) {
+          _params['height'] = _params['height']*1+50;
+        }
+      }else {
+
+        if (_params['width']!=null) {
+          _params['width'] = _params['width']*1+20;
+        }
+        if (_params['height']!=null) {
+          _params['height'] = _params['height']*1+30;
+        }
+      }
+
+
+      if (_params['width']!=null) {
+        _domPanel.style.width = _params['width'];
+      }
+      if (_params['height']!=null) {
+        _domPanel.style.height = _params['height'];
+      }
+    }
+    if (_params['center']!=null) {
+      __center(_panelNode);
+    }
+    if (_params['eventPos']!=null) {
+      var p = __getEventPos();
+      _panelNode.style.top = p.y;
+      _panelNode.style.left = p.x;
+    }
+
+    if (_params['float']=="righttop") {
+      _panelNode.style.top = 2;
+      _panelNode.style.left = document.body.clientWidth - _panelNode.clientWidth - 2;
+    }else if (_params['float']=="lefttop") {
+      _panelNode.style.top = 2;
+      _panelNode.style.left = 2;
+    }
+
+
+    fixVLine();
+  }
+
+  /**
+   * 动态设置window的属性，这可以运行页面时用脚本来动态改变JWin的属性
+   */
+  this.setJWinParams = setJWinParams;
+
+  function setJWinParams($action, $params) {
+    if ($action=="reset") {
+      if ($params.nohead==true) {
+        _domBar.style.display = "none";
+      }
+      if ($params.width!=null) {
+        _domPanel.style.width = $params.width;
+      }
+      if ($params.height!=null) {
+        _domPanel.style.height = $params.height;
+        _panelNode.style.height = $params.height;
+      }
+      if ($params.center==true) {
+        __center(_panelNode, _domPanel, 0, -50);
+      }
+
+      fixVLine();
+      __hideSelects(_panelNode);
+    }
+  };
+
+  function fixVLine() {
+    _domVLine.style.height = 0;
+    var p = _domVLine.parentElement.clientHeight - _shadowSize;
+    _domVLine.style.height = p>0?p:0;
+  }
+
+  function maxsize() {
+    setUI("MAXSIZE");
+  }
+
+  /**
+   * close the panel
+   */
+  function doClose() {
+    if (typeof(_domFrame.contentWindow.__jwindow_close)!="undefined") {
+      _domFrame.src = "about:blank";
+    }
+    _domFrame.contentWindow.__pageOut = false;
+    setUI("HIDE");
+    __showSelects();
+  }
+
+  this.close = close;
+
+  function close() {
+    doClose();
+
+    /** 在关闭时触发子窗口的 _onclose 事件 */
+    var ocFct = _domFrame.contentWindow._onClose;
+    if (typeof(ocFct)!="undefined") {
+      for (var i in ocFct) {
+        ocFct[i]();
+      }
+   }
+  };
+
+  function closexp() {
+    window.__close();
+  }
+
+  /**
+   * when done
+   */
+  function notify() {
+    if (_domFrame.readyState!="complete"){
+      return;
+    }
+    setUI("COMPLETE");
+  }
+}
+
+/**
+ * center the dom object to the current page
+ */
+function __center($dom, $rectDom, $wFix, $hFix) {
+  $wFix = $wFix || 0;
+  $hFix = $hFix || 0;
+  var rectDom = $rectDom || $dom;
+  
+  //var rectPage = new top.Rect(document.body.clientWidth, document.body.clientHeight);
+  //var rectPanel = new top.Rect(rectDom.clientWidth, rectDom.clientHeight);
+  
+  var rectPage = new Rect(document.body.clientWidth, document.body.clientHeight);
+  var rectPanel = new Rect(rectDom.clientWidth, rectDom.clientHeight);
+
+  $dom.style.left = rectPage.w/2 - rectPanel.w/2 + $wFix;
+  $dom.style.top = document.body.scrollTop + rectPage.h/2 - rectPanel.h/2 + $hFix;
+}
+
+/**
+ * 获得触发事件的坐标
+ */
+function __getEventPos() {
+  var x = window.event.x + document.body.scrollLeft;
+  var y = window.event.y + document.body.scrollTop;
+  return {'x':x,'y':y};
+}
+ ]]></scripts>

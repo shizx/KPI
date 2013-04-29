@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="GB2312"?>
+<!--
+  动态脚本加载模式类
+  /**
+   * 数据模板 智能添表模板，此操作需要设置站点为可信任站点
+   * @author: TANTOM
+   * @note: 我是一只小小鸟，想要飞，却怎么样也飞不高
+   */
+-->
+<scripts><![CDATA[
+function SmartTemplate() {
+  
+  var _bTemplateReady = false;
+  var _sRepository = _CONFIG['local.repository'];
+  var _sIndex = _sRepository + "\\smart_template_index.xml";
+  var _xdRepository = null;
+  var _xfIndex = null;
+  var _xmlFileIndex = null;
+  
+  
+  /**
+   * 保存一个地址做为唯一标识的内容
+   */
+  this.save = function save($win, $name) {
+    if (!_bTemplateReady) {
+      initTemplate();
+    }
+    
+    /**
+     * 保存数据
+     */
+    var xml = null;
+    try {
+    	xml = populate($win);
+    }catch(e) {    	
+    	return false;
+    }
+    var uuid = __uuid();
+    var xfTemplate = _xdRepository.createFile(_sRepository + "\\" + uuid + ".xml");
+    xfTemplate.open();
+    xfTemplate.write(getTemplateXml(xml));
+    xfTemplate.close();
+            
+    /**
+     * 保存索引
+     */    
+    _xmlFileIndex.load(_xfIndex);
+  
+    var xmlDocumentIndex = _xmlFileIndex.getXmlDom();
+    var nodeIndexBase = xmlDocumentIndex.selectSingleNode("/templates/template[@type='base']");    
+    
+    var nodeIndexNew = _xmlFileIndex.clone(nodeIndexBase, xmlDocumentIndex.selectSingleNode("/templates"));
+    nodeIndexNew.setAttribute("type", "data");
+        
+    _xmlFileIndex.modifyCData(nodeIndexNew, "url", $win.document.location.pathname);
+    _xmlFileIndex.modifyCData(nodeIndexNew, "uuid", uuid);
+    _xmlFileIndex.modifyCData(nodeIndexNew, "name", $name);
+    _xmlFileIndex.modifyCData(nodeIndexNew, "date", __loadScript("DateUtil", 1).formatChineseTime(new Date()));
+            
+    _xmlFileIndex.save();  
+    _xfIndex.reset();  
+    return true;         
+  };
+  
+  /**
+   * 删除一个模板
+   */
+  this.remove = function remove($uuid) {
+  	var XFile = __loadScript("XFile");
+    if (!_bTemplateReady) {
+      initTemplate();
+    } 
+    
+    /** 删除数据文件 */
+    var xf = new XFile(_sRepository + "\\" + $uuid + ".xml");
+    xf.remove();
+    
+    /** 删除索引 */    
+    _xmlFileIndex.load(_xfIndex);
+  
+    var xmlDocumentIndex = _xmlFileIndex.getXmlDom();
+    var nodeIndex = xmlDocumentIndex.selectSingleNode("/templates/template[uuid='" + $uuid + "']");    
+    var nodeMap = xmlDocumentIndex.selectSingleNode("/templates");
+    nodeMap.removeChild(nodeIndex);    
+    _xmlFileIndex.save();   
+    _xfIndex.reset();    
+  };
+  
+  /**
+   * 填写数据
+   */
+  this.fill = function fill($uuid, $win) {
+  	var XFile = __loadScript("XFile");
+    var iError = 0;
+    var xf = new XFile(_sRepository + "\\" + $uuid + ".xml");
+    _xmlFileIndex.load(xf);
+    var xmlDocumentIndex = _xmlFileIndex.getXmlDom();   
+    
+    var nodesText = xmlDocumentIndex.selectNodes("/doms/input[@type='text' or @type='textarea' or @type='select'] "); 
+    
+    for (var i=0; i<nodesText.length; i++) {
+      try {
+        var n = nodesText[i];
+        $win.__get(n.getAttribute("name")).value = n.text;
+      }catch(e) {
+        iError++;
+      }
+    }
+    
+    var doms = $win.document.all.tags("INPUT");
+    var len = doms.length;
+    for (var i=0; i<len; i++) {
+      try {
+        var t = doms[i].type.toUpperCase();
+        if (t=="CHECKBOX") {
+          fillCheckbox(doms[i], xmlDocumentIndex);
+        }else if (t=="RADIO") {
+          fillRadio(doms[i], xmlDocumentIndex);
+        }
+      }catch(e) {
+        iError++;
+      }
+    }            
+    return iError;    
+  };
+  
+  function fillCheckbox($dom, $xml) {
+    var node = $xml.selectSingleNode("/doms/input[@type='checkbox' and @name='" + $dom.name + "' and @value='" + $dom.value + "']");
+    if (node==null)
+      return;    
+    $dom.checked = node.getAttribute("checked")=="true"?true:false;
+  }
+  
+  function fillRadio($dom, $xml) {
+    var node = $xml.selectSingleNode("/doms/input[@type='radio' and @name='" + $dom.name + "' and @value='" + $dom.value + "']");
+    if (node==null)
+      return;    
+    $dom.checked = node.getAttribute("checked")=="true"?true:false;    
+  }
+  
+  /**
+   * 获得模板的历史列表
+   */
+  this.getTemplateList = function getTemplateList($doc) {
+    if (!_bTemplateReady) {
+      initTemplate();
+    }    
+    var url = $doc.location.pathname;
+    _xmlFileIndex.load(_xfIndex);
+    var xmlDocumentIndex = _xmlFileIndex.getXmlDom();
+    var nodes = xmlDocumentIndex.selectNodes("/templates/template[url='" + url + "']");    
+    var str = "<table cellspacing=1 width=100%><thead class=data_list_thead><tr align=center><td>模板名称</td><td>创建日期</td><td>操作</td></tr></thead>";
+        str+= "<tbody>";
+    var node = null;
+    var len = nodes.length;    
+    for (var i=0; i<len; i++) {
+      node = nodes[i];
+      str += "<tr><td>" + _xmlFileIndex.getCData(node, "name") + "</td>";
+      str += "<td>" + _xmlFileIndex.getCData(node, "date") + "</td>";
+      str += "<td align=center><span style='cursor:hand;' tt.pk='" + _xmlFileIndex.getCData(node, "uuid") + "'>删除</span> ";
+      str += "<span style='cursor:hand;' tt.pk='" + _xmlFileIndex.getCData(node, "uuid") + "'>使用</span></td></tr>";
+    }
+    str += "</tbody></table>";
+    return str;
+  };
+  
+  /**
+   * 把文档对象中的INPUT,TEXTAREA,SELECT等内容变成
+   * xml格式，不保存隐藏的对象的值，只保存显示的值
+   */
+  function populate($win) {
+    var domIps = $win.document.all.tags("INPUT");
+    var str = [];
+    for (var i=0; i<domIps.length; i++) {
+      var dom = domIps[i];
+      /**
+      if (dom.style.display=="none"||dom.style.visibility=="hidden") {
+        continue;
+      }*/      
+      var t = dom.type.toUpperCase();
+      if (t=="TEXT"||t=="PASSWORD") {
+        str.push(popText(dom, $win.document));
+      }
+      
+      if (t=="CHECKBOX") {
+        str.push(popCheckbox(dom, $win.document));
+      } 
+      
+      if (t=="RADIO") {
+        str.push(popRadio(dom, $win.document));
+      }
+    }
+    
+    var domTextArea = $win.document.all.tags("TEXTAREA");
+    for (var i=0; i<domTextArea.length; i++) {
+      var dom = domTextArea[i];      
+      str.push(popTextArea(dom, $win.document));
+    }
+    
+    var domSelect = $win.document.all.tags("SELECT");
+    for (var i=0; i<domSelect.length; i++) {
+      var dom = domSelect[i];      
+      str.push(popSelect(dom, $win.document));
+    }
+    
+    if (str.length==0) {
+    	alert("!没有可以做为模板的数据，模板数据只对各种输入框元素使用");
+    	throw new Error("error");    	
+    }
+    
+    return str.join("");
+  }
+  
+  /**
+   * TEXT的生成INPUT的XML，确认不是隐藏，如果是XSelect类型的就找类型为hidden的真实类
+   */
+  function popText($dom, $doc) {      
+    return '<input type="text" name="' + $dom.name + '"><![CDATA[' + $dom.value + '##></input>\n'; 
+  }
+  
+  
+  /**
+   * 生成checkbox的输入数据
+   */
+  function popCheckbox($dom, $doc) {
+    return '<input type="checkbox" name="' + $dom.name + '" checked="' + $dom.checked +'" value="' + $dom.value + '"><![CDATA[' + $dom.value + '##></input>\n';
+  }
+  
+  /**
+   * 生成radio的输入数据
+   */
+  function popRadio($dom, $doc) {
+    return '<input type="radio" name="' + $dom.name + '" checked="' + $dom.checked + '" value="' + $dom.value + '"><![CDATA[' + $dom.value + '##></input>\n';
+  }
+  
+  /**
+   * 生成textarea的数据
+   */
+  function popTextArea($dom, $doc) {
+    return '<input type="textarea" name="' + $dom.name + '"><![CDATA[' + $dom.value + '##></input>\n';
+  }
+  
+  /**
+   * 生成Select的数据
+   */
+  function popSelect($dom, $doc) {
+    return '<input type="select" name="' + $dom.name + '"><![CDATA[' + $dom.value + '##></input>\n';
+  }
+  
+  /**
+   * 检查模板所需要的几个文件是否存在，如果存在的话就
+   * 不生成模板文件与目录，否则生成初始化的文件
+   */
+  function initTemplate() {
+    var XFile = __loadScript("XFile");
+    _xdRepository = new XFile(_sRepository);
+    if (!_xdRepository.isFolder()) { //如果不是目录就创建一个目录
+      _xdRepository = _xdRepository.createFolder(_sRepository);
+    }
+    
+    //检查模板是否存在，如果不存在就创建
+    _xfIndex = new XFile(_sIndex);    
+    if (!_xfIndex.isFile()) {
+      _xfIndex = _xfIndex.createFile(_sIndex);
+      _xfIndex.open();
+      _xfIndex.write(getIndexXml());
+      _xfIndex.close();
+    }
+    var XMLFile = __loadScript("XMLFile");
+    _xmlFileIndex = new XMLFile();        
+    _bTemplateReady = true; 
+  }
+  
+  /**
+   * 获得初始化的索引内容
+   */
+  function getIndexXml() {
+    var str = "<?xml version=\"1.0\" encoding=\"GB2312\"?>\n";
+        str+= "<templates>\n";
+	      str+= "<template type=\"base\">\n";
+        str+= "<url><![CDATA[##></url>\n";	      
+	      str+= "<uuid><![CDATA[##></uuid>\n";
+		    str+= "<name><![CDATA[##></name>\n";
+		    str+= "<date><![CDATA[##></date>\n";
+		    str+= "</template>";
+		    str+= "</templates>";
+		    
+	  return str;	    	
+  }
+  
+  /**
+   * 获得模板内容
+   */
+  function getTemplateXml($xml) {
+    var str = "<?xml version=\"1.0\" encoding=\"GB2312\"?>\n";
+        str+= "<doms>\n";
+        str+= $xml;   
+		    str+= "</doms>";
+		    
+	  return str;	    	    
+  }
+}
+    ]]></scripts>

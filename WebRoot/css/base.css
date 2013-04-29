@@ -1,0 +1,652 @@
+.cp_date {
+  cursor:hand;
+}
+.WAMenuItem {
+  font-size:12px;
+  border-style:none;border-width:1px;border-color:#000000;padding:2 5 2 5;margin-top:2px;cursor:hand;
+}
+
+.WAMenuItemB {
+  font-size:12px;
+  border-style:outset;border-width:2px;padding:2 5 2 5;margin-top:0px;cursor:hand;;
+}
+
+/** 主控制区如果左边为树型时使用以下风格 */
+.LeftTreeStyle {
+  background-color: #f7f3f7;
+}
+
+.nodeDescDiv {
+  padding:3px;
+  font-size:14.8px;
+  color:#666666;
+}
+
+#nodeDesc, .nodeDesc {
+  font-size:14.8px;
+  color:red;
+  font-weight:bold;
+}
+
+fieldset {
+  border-color:#dddddd;
+  border-style:solid;
+  border-width:1px;
+}
+
+.disabled {
+  background-color:#eeeeee;
+}
+
+.formTableContainer {
+  padding:5px;
+}
+
+.shadow {
+  display:inline;
+  letter-spacing:1px;
+  filter: dropshadow(color=#000000, offx=1, offy=1, positive=1);
+  font-family: "Tahoma";
+  font-size: 12px;
+  width:100%;
+}
+
+.notnull {
+  background-image:url('../img/notnull.gif');
+  background-repeat:"no-repeat";
+  background-position:"right bottom";
+}
+
+input,button,select {
+  font-family:Tahoma;
+  font-size:12px;
+}
+
+
+form {
+  display:inline;
+}
+
+td {
+  font-family:Tahoma;
+  font-size:12px;
+}
+
+body {
+  padding:0px;
+  margin:0px;
+  font-size:12px;
+  overflow-x:auto;
+  overflow-y:auto;
+  background-image:url('../img/mbg.gif');
+  background-repeat:'repeat-x'
+}
+
+span {
+  font-family:Tahoma;
+  font-size:12px;
+}
+
+fieldset {
+  font-family:Tahoma;
+  font-size:12px;
+  letter-spacing:1px;
+  padding:5px;
+}
+
+legend {
+  font-size:14.8px;
+  letter-spacing:1.5px;
+  color:#008000;
+}
+
+
+textarea {
+  font-family:Tahoma;
+  font-size:12px;
+  width:100%;
+}
+
+
+/*HTMLEditor 字体css*/
+.HE_font12px {
+  font-size:12px;
+}
+
+.HE_font14px {
+  font-family: 宋体;
+  font-size:14.8px;
+}
+
+.HE_font18px {
+  font-size:18px;
+}
+
+.HE_font28px {
+  font-size:28px;
+}
+
+.HE_HeadTitle {
+  color: #0080c0;
+  font-size:18px;
+}
+
+b.rnd{display:block;background:#FFF;font-size:1px}b.rnd b{display:block;height:1;overflow:hidden}b.rnd1{margin:0 2}b.rnd2{margin:0 1}b.rnd1l{margin:0 0 0 2}b.rnd2l{margin:0 0 0 1}b.rnd1r{margin:0 2 0 0}b.rnd2r{margin:0 1 0 0}
+.nm{padding:0 15 1;background-color:#ffcc00}
+.rno,.rno .rnd1,.rno .rnd2{color:#000;background:#fad163}
+
+.TreeNode {
+  padding-left: 20px;
+}
+
+.NodeName {
+  padding-left: 2px;
+  letter-spacing: 1px;
+  cursor:hand;
+}
+
+.ip_text_sl {
+    border-width:0 0 1 0;
+    border-style:solid;
+    background-color:transparent;
+}
+.ip_text_tp {
+    border-width:0 0 0 0;
+    border-style:solid;
+    border-color:black;
+    background-color:transparent;
+}
+
+/** -------------------------- XSelect ----------------------------------**/
+.x-select {
+
+}
+
+.x-select-combo-text {
+    font-size: 12px;
+    font-family: Tahoma;
+    background: #fff url('../img/juice/xselect/text-bg.gif') repeat-x 0 0;
+    border: 1px solid #B5B8C8;
+    height: 21px;
+    width: 120px;
+    padding: 2px 3px;
+    margin: 0;
+}
+
+.x-select-combo-text-focus {
+    border: 1px solid #7EADD9;
+}
+
+.x-select-combo-trigger {
+    background: transparent url('../img/juice/xselect/trigger.gif') no-repeat 0 0;
+    width: 17px;
+    height: 21px;
+    border: 0;
+    border-bottom: 1px solid #B5B8C8;
+}
+
+.x-select-combo-trigger-over {
+    background-position: -17px 0;
+}
+
+.x-select-combo-trigger-focus {
+    background-position: -68px 0;
+}
+
+.x-select-options {
+    border: 1px solid #7EADD9;
+    position: absolute;
+}
+
+.x-select-options td {
+    border-left: 1px solid #7EADD9;
+    border-right: 1px solid #7EADD9;
+}
+
+.x-select-options {
+    border-left: 1px solid #7EADD9;
+    border-right: 1px solid #7EADD9;
+}
+
+.x-select-optionx {
+    border-width: 1px;
+    border-style: solid;
+    border-color: #FFF;
+    padding: 2px 3px;
+}
+
+.x-select-optionx img {
+    border: 0;
+    margin-right: 3px;
+}
+
+.x-select-option-first {
+    border-top: 1px solid #7EADD9;
+}
+
+.x-select-option-last {
+    border-bottom: 1px solid #7EADD9;
+}
+
+.x-select-option-over {
+    background-color: #DFE8F6;
+    border-bottom: 1px dotted #A3BAE9 !important;
+    cursor: pointer;
+}
+/** -------------------------- /XSelect ----------------------------------**/
+
+
+
+/** 标题性TD内容 */
+.P_LB {
+  width:100px;
+  color:#333333;
+  font-weight:bold;
+  padding-left:5px;
+  letter-spacing:1px;
+}
+
+/** 标题性TD内容后的内容 */
+.P_NL {
+
+}
+
+/** 普通输入框样式 */
+.ip_text {
+  width:230px;
+  HEIGHT: 20px;
+  padding:0px;
+  border-width:1px;
+  border-color:#cccccc;
+  border-style:solid;
+}
+
+/** 文本输入框样式 */
+.ip_textarea {
+    width: 230px;
+    height: 100px;
+    overflow-y:auto;
+    border-width:1px;
+    border-color:#cccccc;
+    border-style:solid;
+}
+
+/** 标题内容 */
+.title {
+  color:#CA1313;
+  font-weight:bold;
+  background-repeat:"repeat-x";
+  padding-left:8px;
+  width:100%;
+  vertical-align:baseline;
+  height:20px;
+  background-color:#E6E7E8;
+}
+
+/** 标题内容的字体 */
+.title font {
+  display:inline;
+  letter-spacing:3px;
+  font-family: "Tahoma";
+  font-size: 12px;
+  width:100%;
+}
+
+/** 列表性内容的标题 */
+.data_list_thead {
+  background-color:#8caae6;
+  color:#364F6E;
+  padding:2px;
+  background-image:url('../img/tt1.gif');
+  background-repeat:"repeat-x";
+  height:22px;
+  font-weight:bold;
+}
+
+
+/** 表格内容的TD风格 */
+.formTable td {
+  padding-left:4px;
+}
+
+.formTable tr {
+  font-size:12px;
+}
+
+.zuyue-table {
+	BORDER-COLLAPSE: collapse;
+	width:100%;
+}
+
+/** 列表分行颜色 */
+.TBL_A {
+  background-color:#ffffff;
+}
+/** 列表分行颜色 */
+.TBL_B {
+  background-color:#f7f7f7;
+}
+.TR_OVER {
+	background-color: #E4E8F8;	
+}
+
+.TBL_A td ,
+.TBL_B td ,
+.TR_OVER td {
+	CURSOR: default;
+	height:22px;
+	line-height: 22px;
+}
+
+.data_list_foot td {
+ background-color:#8caae6;
+  color:#364F6E;
+  padding:2px;
+  background-image:url('../img/tt1.gif');
+  background-repeat:"repeat-x";
+  height:22px;
+  font-weight:bold;
+}
+
+.data_list_query {
+  background-color:#F4F1EB;
+}
+
+
+button {
+color:#ffffff ;
+	height: 20px;
+	font-size: 9pt;
+	font-family: "宋体";
+	background-color: #6980BC;
+	border-color: #89ACF0 #485984 #485984 #89ACF0;
+	border-style: solid;
+	border-top-width: 2px;
+	border-right-width: 2px;
+	border-bottom-width: 2px;
+	border-left-width: 2px
+	padding-top: 0px;
+	padding-right: 2px;
+	padding-bottom: 0px;
+	padding-left: 2px;
+	letter-spacing: 1px;
+	cursor: hand;
+
+}
+
+
+/** JWindow的Layer */
+.app-jwin-page-bgcolor {
+	padding: 0px;
+}
+
+/** JWindow表格容器 */
+.app-jwin-table {
+	BACKGROUND-COLOR: #edf2fc;
+	TABLE-LAYOUT: fixed;
+	WIDTH: 300px;
+	HEIGHT: 100%;
+	BORDER: 1px solid;
+	BORDER-COLOR: #cccccc;
+}
+
+/** JWindow的标题 */
+.app-jwin-header,.app-jwin-header-2 {
+	BACKGROUND-COLOR: #0148b2;
+	PADDING:2 3 2 3;
+	VERTICAL-ALIGN: bottom;
+	font-weight: normal;
+	letter-spacing:4px;
+	color: #5E656E;
+    background-image:url('../img/jwin/bg2.gif');
+    background-repeat:"repeat-x";
+}
+
+/** JWin的主背景 */
+.app-jwin-body {
+	PADDING-RIGHT: 5px;
+	OVERFLOW-Y: auto;
+	PADDING-LEFT: 5px;
+	PADDING-BOTTOM: 5px;
+	PADDING-TOP: 5px;
+	HEIGHT: 100%
+}
+
+A:link {
+	COLOR: #003399; TEXT-DECORATION: none
+}
+A:visited {
+	COLOR: #003399; TEXT-DECORATION: none
+}
+A:hover {
+	COLOR: #ff9900; TEXT-DECORATION: underline
+}
+
+.table_head {
+	background-color:#8caae6;
+	color:white;
+	padding:3px;
+	table-layout:fixed;
+}
+
+.data_list_query td{
+  font-weight:bold;
+}
+
+fieldset {
+  border-color:#dddddd;
+  border-style:solid;
+  border-width:1px;
+}
+
+fieldset td {
+  padding-left:4px;
+}
+
+fieldset {
+  font-family:Tahoma;
+  font-size:12px;
+  letter-spacing:1px;
+  padding:5px;
+}
+
+legend {
+  font-size:14.8px;
+  letter-spacing:1.5px;
+  color:#008000;
+}
+
+/** Compone Calendar Styles */
+.Comp_Calendar_Month_Selected {
+  background-color:#FFCC00;
+  font-family:Tahoma;
+  font-size:10px;
+  color:black;
+  cursor:default;
+}
+
+.Comp_Calendar_Month_Over {
+  background-color:#DDDDDD;
+  font-family:Tahoma;
+  font-size:10px;
+  color:black;
+  cursor:hand;
+}
+
+.Comp_Calendar_Year {
+  margin-top:-2px;
+  margin-bottom:-2px;
+  margin-left:-1px;
+  border-style:solid;
+  border-width:0;
+  width:16px;
+  height:12px;
+  font-family:Tahoma;
+  font-size:9px;
+  background-color:#f7f7f7;
+}
+
+.Comp_Calendar_Time {
+  border-style:solid;
+  border-width:1;
+  border-color: #cccccc;
+  width:30px;
+  margin-right:3px;
+  height:18px;
+  font-family:Tahoma;
+  font-size:12px;
+  background-color:#f7f7f7;
+}
+
+.Comp_Calendar_Confirm {
+  border-style:solid;
+  border-width:1;
+  border-color: #666666;
+  width:30px;
+  margin-right:6px;
+  height:18px;
+  font-family:Tahoma;
+  font-size:12px;
+  background-color:#eeeeee;
+}
+
+.Comp_Calendar_YearSelect {
+  font-family:Tahoma;
+  font-size:10px;
+  padding-left:1px;
+  padding-right:1px;
+  cursor:default;
+}
+
+.Comp_Calendar_YearSelect_Over {
+  font-family:Tahoma;
+  font-size:10px;
+  padding-left:1px;
+  padding-right:1px;
+  background-color:#336699;
+  color:white;
+  cursor:hand;
+}
+
+.Comp_Calendar_YearSelect_Selected {
+  background-color:#FFCC00;
+  font-family:Tahoma;
+  font-size:10px;
+  padding-left:1px;
+  padding-right:1px;
+  color:black;
+  cursor:default;
+}
+
+.Comp_Calendar_Month {
+  padding:0px;
+  font-family:Tahoma;
+  font-size:10px;
+  color:white;
+  cursor:hand;
+}
+
+.Comp_Calendar_date_td2 {
+	border-top: 1px solid #000000;
+	border-right: 1px solid #000000;
+	border-bottom: 1px solid #000000;
+	border-left: 1px solid #000000;
+}
+
+
+.Comp_Calendar_selected_day {
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
+.Comp_Calendar_today {
+  background-repeat: no-repeat;
+  background-position: left center;
+}
+
+.Comp_Calendar_day {
+  cursor: hand;
+  font-family:Tahoma;
+  font-size:11px;
+}
+
+.Comp_Calendar_m1,.Comp_Calendar_m2,.Comp_Calendar_m3,.Comp_Calendar_m4,
+.Comp_Calendar_m5,.Comp_Calendar_m6,.Comp_Calendar_m7,.Comp_Calendar_m8,
+.Comp_Calendar_m9,.Comp_Calendar_m10,.Comp_Calendar_m11,.Comp_Calendar_m12 {
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
+
+.Comp_Calendar_date_button1 {
+  background-image: url(../img/calendar/arrow_down.gif);
+}
+
+.Comp_Calendar_today {
+  color:red;background-image: url(../img/calendar/today.gif);
+}
+
+.Comp_Calendar_date_button2 {
+  background-image: url(../img/calendar/small_arrow_up.gif);
+}
+
+.Comp_Calendar_date_button3 {
+  background-image: url(../img/calendar/small_arrow_down.gif);
+}
+
+.Comp_Calendar_selected_day {
+  background-image: url(../img/calendar/selected_day.gif);
+}
+
+.Comp_Calendar_m1 {
+  background-image: url(../img/calendar/m1.gif);
+}
+
+.Comp_Calendar_m2 {
+  background-image: url(../img/calendar/m2.gif);
+}
+
+.Comp_Calendar_m3 {
+  background-image: url(../img/calendar/m3.gif);
+}
+
+.Comp_Calendar_m4 {
+  background-image: url(../img/calendar/m4.gif);
+}
+
+.Comp_Calendar_m5 {
+  background-image: url(../img/calendar/m5.gif);
+}
+
+.Comp_Calendar_m6 {
+  background-image: url(../img/calendar/m6.gif);
+}
+
+.Comp_Calendar_m7 {
+  background-image: url(../img/calendar/m7.gif);
+}
+
+.Comp_Calendar_m8 {
+  background-image: url(../img/calendar/m8.gif);
+}
+
+.Comp_Calendar_m9 {
+  background-image: url(../img/calendar/m9.gif);
+}
+
+.Comp_Calendar_m10 {
+  background-image: url(../img/calendar/m10.gif);
+}
+
+.Comp_Calendar_m11 {
+  background-image: url(../img/calendar/m11.gif);
+}
+
+.Comp_Calendar_m12 {
+  background-image: url(../img/calendar/m12.gif);
+}
+.WAMenuItem {
+  font-size:12px;
+  border-style:none;border-width:1px;border-color:#000000;padding:2 5 2 5;margin-top:2px;cursor:hand;
+}
+

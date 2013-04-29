@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="GB2312"?>
+<scripts><![CDATA[
+
+//--------------------------------------导出EXCEL部分----------------------------------------------------------------------
+var oXL = null;
+var workbookType = 0;  //默认为excel，用0表示，1表示金山表格
+/**
+ * 导出数据到表格
+ * $tableId 标记要导出的数据所在表格的ID
+ * $title Excel中显示的标题
+ * $Orgientation 纸张方向，“1”为横向，其他为竖向
+ * $columns 要导出的列，空表示全部导出
+ * $existTotal 要导出的表格最后一行为特殊行，如“总计”
+ * 注意：本方法只适合导出标准表格中数据
+ */
+function __xmlPagePrintCore($tableId,$title,$Orientation,$columns,$existTotal) {
+    //获得table
+    var table = __get($tableId);
+    if(table==null){
+        alert("无法取得要导出的表格，请确认表格ID正确性");
+        return;
+    }
+    var rowLen = table.rows.length;
+    //过滤掉最后的特殊行，特殊行在后面进行特殊处理
+    if($existTotal=="yes") {
+        rowLen = rowLen*1 - 2;
+    }
+    var colLen = table.rows(0).cells.length;
+
+    if(rowLen<=3) {  //没有记录或者只有一条记录时
+        if(table.rows(1).cells(0).innerText=="没有记录"){
+            alert("对不起,没有数据要导出到EXCEL");
+            return;
+        }
+    }
+
+
+    //获得workbook对象
+    try {
+      if(oXL==null){
+        oXL = new ActiveXObject("Excel.Application");
+      }
+    }catch(e) {
+      //alert("不能正确调用Excel，请确认是否已经将网站设置为安全站点且Excel已安装");
+      //return;
+      try {
+        oXL = new ActiveXObject("ET.Application");
+        workbookType = 1;
+      }catch(e) {
+        alert("Excel和金山表格均不能正确调用，请确认是否已经将网站设置为安全站点且Excel或金山表格已安装");
+        return;
+      }
+    }
+    //获得workbook
+    var oWB = oXL.Workbooks.Add();
+    var oSheet = oWB.ActiveSheet;
+    //设置纸张方向
+    if($Orientation==1){
+        oSheet.PageSetup.Orientation = 2;  //横向
+    }
+    //设置顶边距
+    oSheet.PageSetup.TopMargin = 2/0.035;   //2厘米
+    //设置底边距
+    oSheet.PageSetup.BottomMargin = 1.5/0.035;
+    //设置左边距
+    oSheet.PageSetup.LeftMargin = 1.5/0.035;
+    //设置右边距
+    oSheet.PageSetup.RightMargin = 1.5/0.035;
+    //设置水平居中
+    oSheet.PageSetup.CenterHorizontally = 2/0.035;
+    //打印网格
+    oSheet.PageSetup.PrintGridLines = true;
+
+    //指定边框 1-左 2-右 3-顶 4-底 5-斜( \ ) 6-斜( / )
+    //oSheet.Range("A2:" + getLetter(colLen) + "2").Borders(3).Weight = 2;      //上
+    //oSheet.Range("A" + rowLen +":"+ getLetter(colLen) + rowLen).Borders(4).Weight = 2;      //下
+    //oSheet.Range("A2:A" + rowLen).Borders(1).Weight = 2;     //左
+    //oSheet.Range(getLetter(colLen) + "2:" + getLetter(colLen) + colLen).Borders(2).Weight = 2;      //右
+
+    //数据导入
+    for(var i=0;i<rowLen-1;i++){
+        //构造标题
+        oSheet.rows(1).RowHeight = 1/0.035; // 设置高度=1厘米
+        var num=0;
+        //获取要隐藏的列的长度，已方便设置标题的长度
+          try{
+              for(var j=0;j<colLen;j++) {
+                  if(table.rows(0).cells(j).style.display=="none"){num++;}
+              }
+          }catch(e){
+              alert("数据未完全载入，请等待输入完全载入后再进行导出操作");
+              return;
+          }
+        letter = getLetter(colLen-num);
+        rangeTitle = oSheet.Range("A1:" + letter + "1");
+        rangeTitle.Merge(true);
+        if(workbookType!=1){ //金山表格不支持该参数
+            rangeTitle.HorizontalAlignment = 3;  //居中
+        }
+        rangeTitle.Interior.Pattern = 1;
+        rangeTitle.Interior.PatternColorIndex = -4105;
+        setTitleFont(rangeTitle);
+        rangeTitle.Value = $title;
+
+
+        if(i==0){  //构造表头
+            num=0;
+            for(var j=0;j<colLen;j++) {
+                //将页面隐藏的数据过滤掉
+                if(table.rows(i).cells(j).style.display=="none"){
+                  num++;
+                  continue;
+                }else{
+                    var isEquals = false;
+                    //假如存在指定导出的列名
+                    if($columns!="undefine" && $columns!=null) {
+                        for(var c=0;c<$columns.length;c++) {
+                            if(j==$columns[c].no) {
+                                var temp=j-num;
+                                cell = oSheet.Cells(2,temp+1);
+
+                                setCellWidth(cell,15);
+                                setCellFont(cell);
+                                if(workbookType!=1){ //金山表格不支持该参数
+                                    cell.HorizontalAlignment = 3;   //居中
+                                }
+                                cell.Interior.ColorIndex = 15;
+                                //假如是checkbox或者“选择”字样，则用“序号”代替
+                                if(table.rows(i).cells(temp).innerText!="" && table.rows(i).cells(temp).innerText!="选择"){
+                                    cell.Value = table.rows(i).cells(j).innerText;
+                                }else{
+                                    cell.Value = "序号";
+                                }
+                                isEquals = true;
+                            }
+                         }
+                     }else{  //假如不存在指定导出的列，则导出所有列名
+                        var temp=j-num;
+                        cell = oSheet.Cells(2,temp+1);
+
+                        setCellWidth(cell,15);
+                        setCellFont(cell);
+                        if(workbookType!=1){ //金山表格不支持该参数
+                            cell.HorizontalAlignment = 3;   //居中
+                        }
+                        cell.Interior.ColorIndex = 15;
+                        //假如是checkbox或者“选择”字样，则用“序号”代替
+                        if(table.rows(i).cells(temp).innerText!="" && table.rows(i).cells(temp).innerText!="选择"){
+                            cell.Value = table.rows(i).cells(j).innerText;
+                        }else{
+                            cell.Value = "序号";
+                        }
+                    }
+                    if($columns!="undefine" && $columns!=null && !isEquals) {
+                        num++;
+                        continue;
+                    }
+                }//end if
+            }//end for
+        }else{  //导出内容
+            try {
+                num=0;
+                //过滤单元格合并的行（一般就是不规则行了）
+                if (table.rows(i).cells.length<colLen) {
+                  continue;
+                }
+                for (var j=0;j<colLen;j++){
+                    //将页面隐藏的数据过滤掉       
+                    if(table.rows(i).cells(j).style.display=="none"){
+                        num++;
+                        continue;
+                    }else{
+                        var isEquals = false;
+                        var temp=j-num;
+                        cell = oSheet.Cells(i+2,temp+1);
+
+                        if(workbookType!=1){ //金山表格不支持该参数
+                            cell.HorizontalAlignment = 3;  //居中
+                        }
+
+                        if(table.rows(i).cells(j)==null){
+                            alert("数据未完全载入，请等待输入完全载入后再进行导出操作");
+                            return;
+                        }
+
+                        //假如存在指定导出的列
+                        if($columns!="undefine" && $columns!=null) {
+                            for(var c=0;c<$columns.length;c++) {
+                                if(j==$columns[c].no){
+                                    //当是checkbox时才以序号代替
+                                    if (__isHasCheckboxOrRadio(table.rows(i).cells(j))) {
+                                        cell.Value =  i;
+                                    }else {
+                                        //假如内容存在"="，会抛出异常，所以这里将“=”用全角的"＝"代替
+                                        if(table.rows(i).cells(j).innerText.indexOf("=")==-1){
+                                           cell.Value =  table.rows(i).cells(j).innerText;
+                                        }else{
+                                           var reg = /\=/g;
+                                           cell.Value = table.rows(i).cells(j).innerText.replace(reg,"＝");
+                                        }
+                                    }
+                                    isEquals = true;
+                                }//end if
+                            }//end for
+                        }else{ //假如不存在指定导出的列，则导出所有列
+                            //当是checkbox时才以序号代替
+                            if (__isHasCheckboxOrRadio(table.rows(i).cells(j))) {
+                                cell.Value =  i;
+                            }else {
+                                var c = table.rows(i).cells(j).innerText;
+                                //假如内容存在"="，会抛出异常，所以这里将“=”用全角的"＝"代替
+                                if(c.indexOf("=")!=-1){
+                                   var reg = /\=/g;
+                                   c = c.replace(reg,"＝");
+                                }
+                               //处理列表中有“急”、“特急”、“特提”等图片时用文字代替
+                               var html = table.rows(i).cells(j).innerHTML;
+                               if(html.indexOf("img")!=-1) {
+                                  var imgText = "";
+                                  if(html.indexOf("u1")!=-1)
+                                     imgText = "急";
+                                  else if(html.indexOf("u2")!=-1)
+                                     imgText = "特急";
+                                  else if(html.indexOf("u3")!=-1)
+                                     imgText = "特提";
+                                  if(__isEmpty(c)){
+                                     cell.Value = imgText;
+                                  }else{
+                                     cell.Value = c + "(" + imgText + ")";
+                                  }
+                               }else{
+                                  cell.Value =  table.rows(i).cells(j).innerText;
+                               }
+                            }
+                        }
+                        if($columns!="undefine" && $columns!=null && !isEquals) {
+                            num++;
+                            continue;
+                        }
+                    }//end if
+                }//end for
+            }catch(e) {
+              alert("在数据导出时出现错误，请检查是否在数据还没完全导出时关闭了Excel或金山表格？");
+              return;
+            }
+        }//end for
+    }//end if
+
+    //特殊行特殊处理
+    if($existTotal=="yes") {
+        var range = colLen;
+        for (var j=0;j<range;j++){
+            cell = oSheet.Cells(rowLen*1+1,j+1);
+
+            if(workbookType!=1){ //金山表格不支持该参数
+                cell.HorizontalAlignment = 3;   //居中
+            }
+
+            cell.Value = table.rows(rowLen-1).cells(j).innerText;
+
+            //下面处理跨列的数据
+            colspan = table.rows(rowLen-1).cells(j).getAttribute("colspan");
+            if(colspan>1) {
+                range = range*1 - colspan*1 + 1;
+            }
+        }
+    }
+
+    oXL.Visible = true;
+    oXL.Caption = $title;   //设置应用标题
+    oXL.UserControl = true;
+}
+
+/**
+ * 是否有checkbox与Radio
+ */
+function __isHasCheckboxOrRadio($dom) {
+  var ips = $dom.all.tags("INPUT");
+  for (var i=0; i<ips.length; i++) {
+    var t = ips[i].type.toUpperCase();
+    if (t=="CHECKBOX" || t=="RADIO") {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+/**
+* 设置单元的宽度
+*/
+function setCellWidth($cell, $width) {
+    if(workbookType!=1){ //金山表格不支持该参数
+        $cell.ColumnWidth = $width;
+    }
+}
+
+/**
+* 设置单元格的风格
+*/
+function setCellBorder($cell) {
+    $cell.Borders.weight = 2;
+}
+
+/**
+* 设置单元格的字体
+*/
+function setCellFont($cell) {
+    with ($cell.Font) {
+      Name = "宋体";
+      FontStyle = "常规";
+      if(workbookType!=1){ //金山表格不支持该参数
+        Bold = "TRUE";
+      }
+      Size = 10.5;
+    }
+}
+
+/**
+ * 设置标题字体
+ */
+function setTitleFont($cell){
+    with($cell.Font) {
+      Name = "宋体";
+      FontStyle = "常规";
+      if(workbookType!=1){ //金山表格不支持该参数
+        Bold = "TRUE";
+      }
+      Size = 14.5;
+    }
+}
+
+/**
+ * 获得数字对应的字母
+ */
+function getLetter($idx) {
+    if($idx==1){
+        return "A";
+    }else if($idx==2){
+        return "B";
+    }else if($idx==3){
+        return "C";
+    }else if($idx==4){
+        return "D";
+    }else if($idx==5){
+        return "E";
+    }else if($idx==6){
+        return "F";
+    }else if($idx==7){
+        return "G";
+    }else if($idx==8){
+        return "H";
+    }else if($idx==9){
+        return "I";
+    }else if($idx==10){
+        return "J";
+    }else if($idx==11){
+        return "K";
+    }else if($idx==12){
+        return "L";
+    }
+}
+
+window.__xmlPagePrint = __xmlPagePrintCore;
+//---------------------------------------------------导出EXCEL部分结束-------------------------------------------------------
+  ]]></scripts>

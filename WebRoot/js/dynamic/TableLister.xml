@@ -1,0 +1,750 @@
+<?xml version="1.0" encoding="GB2312"?>
+<scripts><![CDATA[
+/**
+ * @author: TANTOM
+ */
+function TableLister() {
+  var _oXml = null;
+  var _dataUrl = null;
+  var _domLink = null; //the dom which place the jump page url in it
+  var _dom = null;
+  var _loadingDom = null;
+  var _lic = "w.gif"
+  var _bXuice = false; //是否使用Xuice架构读取数据，支持长参数，但返回xml的页面必须使用XuiceRequestBean来读取参数
+
+  /** juice implement interface */
+  this.init = init;
+
+  function init($dom) {
+      _dom = $dom;
+    if ("true"==_dom.getAttribute("tt.xuice")) {
+      _bXuice = true;
+    }
+    if (!_bXuice) {
+      _oXml = __getXmlObject();
+    }
+    /** if the table has the name id then reset the id to name */
+    var dN = _dom.getAttribute("name");
+    if (dN!=null) {
+      _dom.setAttribute("id", dN);
+      _dom.reload = reload;
+    }
+
+    var ic = _dom.getAttribute("tt.loading.icon");
+    if (ic!=null) {
+      _lic = ic;
+    }
+
+    _domLink = document.getElementById($dom.getAttribute("tt.link.id"));
+    if (_dom.getAttribute("tt.lazy")!=null) {
+      generateDataUrl(); //set tt.data.url.src
+      return;
+    }
+
+    /** user a random timer call to optimize page load*/
+    var ran = Math.random() * 300 + 20;
+    setTimeout(load, ran);
+
+    window.attachEvent("onunload", clear);
+  };
+
+  function clear() {
+    if (_oXml!=null) {
+      _oXml.onreadystatechange = new Function("return false");
+      _oXml = null;
+    }
+    if (_xuiceDoc!=null){
+      _xuiceDoc = null;
+    }
+    _dom.reload = null;
+  }
+  var _async = true;
+  /** reload data from outside */
+  function reload($syn, $noRemove) {
+
+    if ($syn==null) { //默认大多数情况下使用没参数的即可
+      _async = true;
+      _dom.setAttribute("tt.current", "0");
+      if ($noRemove==true) {
+      }else {
+        remove();
+      }
+      load();
+    }else {
+      if ($syn="SynLoad") {
+        _async = false;
+        load();
+      }
+    }
+  }
+
+  function fixUrl($url) {
+    return $url.substr(0, $url.indexOf("?"));
+  }
+
+  var _errorTryCount = 0;
+  var _xuiceDoc = null;
+  var _loadKey = -1;
+  /** load data from server */
+  function load() {
+    var urlXml = null;
+    if (!_bXuice) {
+        try {
+          _oXml.async = _async;
+        }catch(e) {
+          if (_errorTryCount>=3) {
+            return;
+          }
+          _oXml.onreadystatechange = new Function("return false");
+          _oXml.abort();
+          setTimeout(reload, 300);
+          _errorTryCount++;
+          return;
+        }
+    }else {
+       _oXml = __getXmlHttp();
+       _xuiceDoc = __getXmlObject();
+       var u = _dom.getAttribute("tt.data.url");
+       var currentPage = _dom.getAttribute("tt.current") || 0;
+       u = __setUrlParam(u, "EXI.PAGE.CURRENT", currentPage);
+       urlXml = _Xuice.generateUrlXml(u, true);
+    }
+
+    //动态快速变换Dom内代码会造成Lister回调时的问题
+    if (_dom.children.length==0) {
+      return;
+    }
+    var targetInsert = _dom.children[0].getAttribute("tt.insert");
+    _loadKey = setTimeout(goLoading,300);
+    function goLoading() {
+        if (targetInsert!=null) {        
+          __get(targetInsert).innerHTML = "<div align=center><img src=" + _c + "/img/" + _lic + " align=absmiddle> 正在加载数据，请稍候...</div>";
+        }else {
+          var loadingDom = _dom.getAttribute("tt.loading.dom");
+          if (loadingDom==null) {
+            var domThead = _dom.tHead;
+            var domTBody = _dom.tBodies[0];
+            if (domTBody==null) {return;}
+            var tmpA = 0;
+            if (domThead.rows.length==0) {
+            }else {
+              tmpA = domThead.rows[0].cells.length;
+            }  
+            var tmpB = "<tr><td colspan=" + tmpA + " align=center><img src=" + _c + "/img/" + _lic + " align=absmiddle> 正在加载数据，请稍候...</td></tr>";
+            var tmpR = __tableRows(tmpB);
+            _loadingDom = domTBody.appendChild(tmpR[0]);
+            //domTBody.moveRow(tmpR[0].sectionRowIndex, 0);
+          }else {
+            __get(loadingDom).innerHTML = "<div align=center><img src=" + _c + "/img/" + _lic + " align=absmiddle> 正在加载数据，请稍候...</div>";
+          }
+        }
+    }
+    if (_domLink!=null && targetInsert==null) {
+      _domLink.innerHTML = "";
+      if (_domLink.getAttribute("tt.nohide")==null) {
+        _domLink.parentElement.style.display = "none";
+      }
+    }
+    _dataUrl = generateDataUrl();    
+    _oXml.onreadystatechange = osc;
+
+    function osc() {
+      if (_oXml.readyState == 4){
+          _errorTryCount = 0;
+          if (_bXuice) {
+            _xuiceDoc.loadXML(_oXml.responseText);
+          }else {
+              var err = _oXml.parseError;
+
+              if (err.errorCode!=0) {                           
+                if (err.errorCode==-2146697210) {
+                   if (_errorTryCount>=3) {
+                     return;
+                   }
+                   setTimeout(reload, 500);
+                   _errorTryCount++;
+                   return;
+                }
+                alert("读取数据时出现错误: ERROCODE: 001 " + err.errorCode);
+                return;
+              }
+          }
+          //window.clipboardData.setData("Text", _oXml.xml);
+          var checkDoc = _bXuice?_xuiceDoc:_oXml;
+          if (!__xmlErrorHandler(checkDoc, _domLink)) {
+             //kill the loading dom
+             if (_loadKey!=-1) {
+               clearTimeout(_loadKey);
+               _loadKey = -1;
+             }
+             var targetInsert = _dom.children[0].getAttribute("tt.insert");
+             if (targetInsert!=null) {
+                 __get(targetInsert).innerHTML =  "<span style='color:red'>" + checkDoc.documentElement.childNodes[0].text + "</span>";
+                 return;
+             }
+
+             var loadingDom = _dom.getAttribute("tt.loading.dom");
+
+             if (loadingDom!=null) {
+               __get(loadingDom).innerHTML = "";
+             }else {
+               if (_loadingDom!=null && _loadingDom.cells.length>0) {
+                 _loadingDom.cells[0].innerHTML = "";
+               }
+               if (_domLink!=null) {
+                _domLink.parentElement.style.display = "";
+               } 
+             }
+
+
+            return;
+          }
+
+          /** load success then build the ui */
+          build();
+        }
+    };
+
+    if (!_bXuice) {
+      _oXml.load(__noCacheUrl(_dataUrl));
+    }else {
+      _xuiceDoc.loadXML(urlXml);
+      _oXml.open("POST", fixUrl(_dataUrl), _async);
+      _oXml.setRequestHeader("Content-Type","text/xml");
+      _oXml.setRequestHeader("Content-Type","GBK");
+      _oXml.send(_xuiceDoc);
+    }
+  }
+
+  /** add page params to the link it just add the current page,if n it set to 0 */
+  var bSrcUrl = false;
+  function generateDataUrl() {
+    var url = _dom.getAttribute("tt.data.url");
+    if (!bSrcUrl) {
+      _dom.setAttribute("tt.data.url.src", url);
+      bSrcUrl = true;
+    }
+    if (url.indexOf("/")==0) {
+      url = _c + url;
+    }
+    var currentPage = _dom.getAttribute("tt.current") || 0;
+    url = __setUrlParam(url, "EXI.PAGE.CURRENT", currentPage);
+    //如果地址中有%的变量就修改为Sybase语句所匹配的特定符号
+    if (url.indexOf("%")!=-1) {
+      url = url.replace(/\u0025/g, "[%25]");
+    }
+    //如果有'号就替换
+    if (url.indexOf("'")!=-1) {
+      url = url.replace(/'/g, "''");
+    }
+    //如果有+号就替换为%2B
+    if (url.indexOf("+")!=-1) {
+      url = url.replace(/\u002B/g,"%2B");
+    }
+    return url;
+  }
+
+  /** when data load complete it's call this */
+  function notify() {
+
+  }
+
+  function remove() {
+    var domTBody = _dom.tBodies[0];
+    /** when build kick out the old data first */
+    var childs = domTBody.rows;
+    for (var i=childs.length-1; i>=0; i--) {
+      domTBody.deleteRow(childs[i].sectionRowIndex);
+    }
+  }
+  /** when complete then build the ui */
+  function build() {
+    var domThead = _dom.tHead;
+    var domTBody = _dom.tBodies[0];
+    if (domTBody==null) {
+      return;
+    }
+    var rootNode = null;
+    if (!_bXuice) {
+      rootNode = _oXml.documentElement;
+    }else {
+      rootNode = _xuiceDoc.documentElement;
+    }
+
+    remove();
+
+    //if the table component's first child it's xml then mean it use custom defined view
+    if (_dom.children[0].tagName.toUpperCase()=="XML") {
+      var customTemplate = _dom.children[0].selectSingleNode("/view").text;
+
+      var dataRows = rootNode.selectSingleNode("/table/tbody").childNodes;
+      /** 如果没有数据就显示，没任何数据 */
+      if (dataRows.length==0) {
+        var tmpA = 0;
+        if (domThead.rows.length==0) {
+          
+        }else {
+          tmpA = domThead.rows[0].cells.length;
+        }
+        var msg = "没有记录";
+        if (_dom.getAttribute("tt.no.result.msg")!=null) {
+          msg = _dom.getAttribute("tt.no.result.msg");
+        }
+        var tmpB = "<tr><td colspan=" + tmpA + ">" + msg + "</td></tr>";
+        var tmpR = __tableRows(tmpB);
+
+        //kill loading
+        if (_loadKey!=-1) {
+         clearTimeout(_loadKey);
+         _loadKey = -1;
+        }
+        var targetInsert = _dom.children[0].getAttribute("tt.insert");
+        if (targetInsert!=null) {
+            __get(targetInsert).innerHTML = msg;
+        }else {
+          domTBody.appendChild(tmpR[0]);
+        }
+
+        if (_domLink!=null) {
+          if (_domLink.getAttribute("tt.nohide")==null) {
+            _domLink.parentElement.style.display = "none";
+          }
+        }
+
+        if (_dom.getAttribute("tt.custLink")!=null) {
+         _dom.setAttribute("tt.rows", rootNode.getAttribute("rows"));
+         _dom.setAttribute("tt.current", rootNode.getAttribute("current"));
+         _dom.setAttribute("tt.perpage", rootNode.getAttribute("perpage"));
+         _dom.setAttribute("tt.totalpage", rootNode.getAttribute("totalpage"));
+          window.custLinkPage(_dom.getAttribute("name"), pTotalPage, pCurrent, _domLink, jump, rootNode.getAttribute("rows"));
+        }
+      }else {
+        if (_domLink!=null) {
+          _domLink.parentElement.style.display = "";
+        }
+
+      var headRows = rootNode.selectSingleNode("/table/thead").childNodes;
+      var regers = [];
+      for (var i=0, len=headRows.length; i<len; i++) {
+        regers.push(new RegExp("#" + headRows[i].text + "#", "gi"));
+      }
+
+      var rowString = [];
+      var tmp = null;
+      var dataRow = null;
+      var dataCells = null;
+
+      for (var i=0, len=dataRows.length; i<len; i++) {
+        dataRow = dataRows[i];
+        dataCells = dataRow.childNodes;
+        tmp = customTemplate;
+        for (var j=0, jLen=dataCells.length; j<jLen; j++) {
+          if (dataCells[j].text.indexOf("$")==-1) {
+            tmp = tmp.replace(regers[j], dataCells[j].text);
+          }else {
+            tmp = tmp.replace(regers[j], function() { return dataCells[j].text });
+          }
+        }
+        tmp = __scriptReplacer(tmp);
+        rowString.push(tmp);
+      }
+
+      /** if the customer template it's now the rows then use and td to store the message */
+      if (_dom.children[0].getAttribute("tt.mode")==null) {
+        var rows = __tableRows(rowString.join(""));
+        for (var i=0, len=rows.length; i<len; i++) {
+          domTBody.appendChild(rows[i]);
+        }
+        /** 对通用查询中有特殊的处理 */
+        var appendNode = rootNode.selectSingleNode("/table/data");
+        if (appendNode!=null) {
+          var aN = appendNode.getAttribute("title");
+          var nC = appendNode.childNodes;
+          var t = customTemplate;
+          for (var i=0; i<nC.length; i++) {
+            var key = nC[i].getAttribute("name");
+            var reg = new RegExp("#" + key + "#", "g");
+            t = t.replace(reg, nC[i].text);
+          }
+          t = t.replace(/#[^#]+#/g, "");
+          var r = __tableRows(t)[0];
+          r.style.backgroundColor = "#eeeeee";
+          var c = r.cells;
+          for (var i=0; i<c.length; i++) {
+            c[i].innerHTML = c[i].innerText; //kill links if exist;
+          }
+          c[0].insertAdjacentHTML("afterBegin", aN);
+          domTBody.appendChild(r);
+        }
+        /** 特殊数据，如统计合计等字段 */
+        var tappend = rootNode.selectSingleNode("/table/tappend");
+        if (tappend!=null) {
+          //查找有tbody为tt.append属性的
+          var tbs = _dom.tBodies;
+          var tb = null;
+          for (var i=0; i<tbs.length; i++) {
+            if (tbs[i].getAttribute("tt.append")=="true") {
+              tb = tbs[i];
+            }
+          }
+          if (tb==null) { //该方法暂不处理，这里可以留待以后出现其它情况时用其它方式处理
+          }else {
+            var nC = tappend.childNodes;
+            var t = tb.innerHTML;
+            for (var i=0; i<nC.length; i++) {
+              var key = nC[i].getAttribute("name");
+              var reg = new RegExp("#" + key + "#", "g");
+              t = t.replace(reg, nC[i].text);
+            }
+            t = t.replace(/#[^#]+#/g, "");
+            var r = __tableRows(t);
+            for (var i=0; i<r.length; i++) {
+              domTBody.appendChild(r[i]);
+            }
+          }
+        }
+      }else {
+        var targetInsert = _dom.children[0].getAttribute("tt.insert");
+        if (targetInsert==null) {
+          var tmpA = domThead.rows[0].cells.length;
+          var tmpB = "<tr><td colspan=" + tmpA + "></td></tr>";
+          var tmpR = __tableRows(tmpB);
+          domTBody.appendChild(tmpR[0]);
+          tmpR[0].cells[0].innerHTML = rowString.join("");
+        }else {
+          __get(targetInsert).innerHTML = rowString.join("");
+        }
+      }
+      //设置分行的颜色控制
+      if (domTBody.getAttribute("tt.noRowStyle")==null) {
+      var cRows = domTBody.rows;
+      var cRs = "TBL_A";
+      for (var i=0; i<cRows.length; i++) {
+        cRs = cRs=="TBL_A"?"TBL_B":"TBL_A";
+        cRows[i].className = cRs;
+      }
+      }
+
+      if (domTBody.getAttribute("tt.noOverStyle")==null) {
+        var cRows = domTBody.rows;
+        for (var i=0; i<cRows.length; i++) {
+          cRows[i].style.cursor = "default";
+          __addEvent(cRows[i], "onmouseover", overR);
+          __addEvent(cRows[i], "onmouseout", outR);
+          __addEvent(cRows[i], "onclick", clickR);
+        }
+      }
+
+      // set and initial the page int params
+      var pRows = rootNode.getAttribute("rows");
+      var pCurrent = rootNode.getAttribute("current");
+      var pTotalPage = rootNode.getAttribute("totalpage");
+      var pPerPage = rootNode.getAttribute("perpage");
+
+      _dom.setAttribute("tt.rows", pRows);
+      _dom.setAttribute("tt.current", pCurrent);
+      _dom.setAttribute("tt.perpage", pPerPage);
+      _dom.setAttribute("tt.totalpage", pTotalPage);
+
+      /** current page total statistic */
+      if (_domLink!=null) {
+        if (_dom.getAttribute("tt.custLink")!=null) {
+          window.custLinkPage(_dom.getAttribute("name"), pTotalPage, pCurrent, _domLink, jump, pRows);
+        }else {
+          var linkTmp = [];
+
+          if (pTotalPage!=0) {
+            linkTmp.push("第<span style='color:red'> ");
+            linkTmp.push(pCurrent*1 + 1);
+            linkTmp.push(" </span>页");
+            linkTmp.push(" 共<span style='color:red'> ");
+            linkTmp.push(pTotalPage);
+            linkTmp.push("</span> 页 ");
+          }
+
+          linkTmp.push(" 共 <span style='color:red'>" + pRows + "</span> 条记录 ");
+
+          /** it's show the fisrt page */
+          if (pCurrent>=1) {
+            linkTmp.push(" <a href=#### tt.type=First style='cursor:hand'>首页</a>");
+          }
+
+          /** show the previuse page */
+          if (pCurrent>0) {
+            linkTmp.push(" <a href=#### tt.type=Previous style='cursor:hand'>上一页</a>");
+          }
+
+          /** show the next page */
+          if (pCurrent<pTotalPage-1) {
+            linkTmp.push(" <a href=#### tt.type=Next style='cursor:hand'>下一页</a>");
+          }
+
+          /** show the last page */
+          if (pTotalPage>1 && pCurrent!=pTotalPage-1) {
+            linkTmp.push(" <a href=#### tt.type=Last style='cursor:hand'>末页</a>");
+          }
+
+          if (pTotalPage>1) {
+            linkTmp.push(" <span>到<input type=text class=ip_text style='width:30px;text-align:center' tt.total.page=" + pTotalPage + ">页 <a href=#### tt.type=Jump>GO</a></span>");
+          }
+          _domLink.style.visibility = "hidden";
+          _domLink.innerHTML = linkTmp.join("");
+
+
+          var domJumpLinks = _domLink.all.tags("A");
+          for (var i=0, len=domJumpLinks.length; i<len; i++) {
+            __addEvent(domJumpLinks[i], "onclick", jump);
+          }
+          var domJ = _domLink.all.tags("INPUT");
+          if (domJ.length>0) {
+            __addEvent(domJ[0], "onkeypress", keyP);
+          }
+          _domLink.style.visibility = "visible";
+        }
+      }
+      }
+
+       //kill the loading dom
+       if (_loadKey!=-1) {
+         clearTimeout(_loadKey);
+         _loadKey = -1;
+       }
+       var loadingDom = _dom.getAttribute("tt.loading.dom");
+       if (loadingDom!=null) {
+         __get(loadingDom).innerHTML = "";
+       }
+
+      //设置对列数据的排序控制
+      if (domThead.getAttribute("tt.sortable")=="true") {
+        var hs = domThead.rows[0].cells;
+        var h = null;
+        var oc = null;
+        for (var i=0; i<hs.length; i++) {
+          h = hs[i];
+          oc = h.getAttribute("tt.order");
+          if (oc!=null) {
+            var hcs = h.children;
+            if (hcs.length==0) {
+              h.insertAdjacentHTML("beforeEnd", "&nbsp;<img src=" + _c + "/img/xp/sort2.gif align=absbottom>");
+            }else {
+              hcs[0].insertAdjacentHTML("beforeEnd", "&nbsp;<img src=" + _c + "/img/xp/sort2.gif align=absbottom>"); 
+            }
+            h.style.cursor = "hand";
+            h.title = "点击进行排序处理";
+
+
+            h.style.textDecoration = "underline";
+            __addEvent(h, "onclick", doOrderColumn);
+            __addEvent(h, "onmouseover", overD);
+            __addEvent(h, "onmouseout", outD);
+          }
+        }
+        domThead.removeAttribute("tt.sortable");
+      }
+
+      /** recall the loaded function if exist */
+      __call(_dom, "_loaded");
+    }
+  }
+  var _te = "#E4E8F8";
+  function overR() {
+    var d = event.srcElement;
+    d = __getReal(d, "tagName", "TR");
+    d.setAttribute("tt.src.bgcolor", d.currentStyle.backgroundColor);
+    d.style.backgroundColor = _te;
+  }
+
+  function outR() {
+    var d = event.srcElement;
+    d = __getReal(d, "tagName", "TR");
+    var ste = d.getAttribute("tt.src.bgcolor");
+    if (ste!=null) {
+      d.style.backgroundColor = ste;
+    }
+  }
+ var _te2 = "#C6DDC0";
+ function overD() {
+    var d = event.srcElement;
+    d = __getReal(d, "tagName", "TD");
+    d.setAttribute("tt.src.bgcolor", d.currentStyle.backgroundColor);
+    d.style.backgroundColor = _te2;
+  }
+
+  function outD() {
+    var d = event.srcElement;
+    d = __getReal(d, "tagName", "TD");
+    var ste = d.getAttribute("tt.src.bgcolor");
+    if (ste!=null) {
+      d.style.backgroundColor = ste;
+    }
+  }
+
+  function clickR() {
+    var d = event.srcElement;
+
+    if (d.tagName=="A" || __getReal(d, "tagName", "A")!=null || d.tagName=="INPUT" || d.tagName=="IMG") {
+      return;
+    }
+    d = __getReal(d, "tagName", "TR");
+    var is = d.all.tags("INPUT");
+    if (is.length!=0) {
+      for (var i=0; i<is.length; i++) {
+        var t = is[i].getAttribute("type");
+        if (t!=null && (t.toUpperCase()=="CHECKBOX" || t.toUpperCase()=="RADIO")) {
+          is[i].click();
+          return;
+        }
+      }
+    }
+    var as = d.all.tags("A");
+    if (as.length!=0) {
+      event.cancelBubble = true;
+      event.returnValue = false;
+      as[0].click();
+    }
+  }
+
+  //对列表内容进行排序
+  function doOrderColumn() {
+    var e = event.srcElement;
+    e = __getReal(e, "tagName", "TD");
+    var oc = e.getAttribute("tt.order");
+    if (oc==null) {
+      alert("该列不能进行排序操作");
+      return;
+    }
+
+    //重设Order值
+    resetOrderValue(e, oc);
+
+    var url = _dom.getAttribute("tt.data.url");
+    var uor = __getUrlParamValue("EXI.ORDER", url);
+    if (uor==null) { //第一次点排序
+      url = __setUrlParam(url, "EXI.ORDER", oc);
+    }else { //不删除原来的，在原来的基础上追加
+      url = __setUrlParam(url, "EXI.ORDER", parseOc(uor, oc));
+    }
+    _dom.setAttribute("tt.data.url", url);
+    load();
+
+    //设置图标
+    var eImg = e.all.tags("IMG");
+    var imgSrc = oc.indexOf("@")==-1?"/img/xp/up.gif":"/img/xp/down.gif";
+    if (eImg.length==0) {
+      e.insertAdjacentHTML("beforeEnd", "&nbsp;&nbsp;<img src=" + _c + imgSrc + " align=absbottom>");
+    }else {
+      eImg = eImg[0];
+      eImg.src = _c + imgSrc;
+    }
+  }
+
+  //设置排序的字串 $uro是以 $ 号做分割的
+  function parseOc($uor, $oc) {
+    var us = $uor.split("$");
+    var oc = $oc.indexOf("@")==-1?$oc:$oc.substr(0, $oc.indexOf("@"));//no @ splitter
+    var sb = [];
+    var u = null;
+    var b = false;
+    sb.push($oc);
+    for (var i=0; i<us.length; i++) {
+      u = us[i];
+      if (u==oc || u==oc+"@desc") { //已经存在
+        b = true;
+      }else {
+        sb.push(u);
+      }
+    }
+    return sb.join("$");
+  }
+
+  //如按fsNo排，那么第一次变为 fsNo@desc 第二次变回 fsNo
+  function resetOrderValue($dom, $oc) {
+    if ($oc.indexOf("@")==-1) {
+      $oc = $oc + "@desc";
+    }else {
+      $oc = $oc.substr(0, $oc.indexOf("@"));
+    }
+    $dom.setAttribute("tt.order", $oc);
+  }
+
+  /** jump by enter key */
+  function keyP() {
+    var kc = event.keyCode;
+    if (kc==13) {
+      var d = event.srcElement;
+      d.parentElement.all.tags("A")[0].click();
+    }
+  }
+
+  /**
+   * jump event
+   */
+  function jump() {
+    var dom = window.event.srcElement;
+    var type = dom.getAttribute("tt.type");
+    if (type==null)
+      return;
+
+    var currentPage = _dom.getAttribute("tt.current") || 0;
+    var targetPage = null;
+
+    switch(type) {
+      case "First":
+        targetPage = 0;
+        break;
+      case "Last":
+        targetPage = _dom.getAttribute("tt.totalpage")*1 - 1;
+        break;
+      case "Previous":
+        targetPage = currentPage*1 -1;
+        break;
+      case "Next":
+        targetPage = currentPage*1 + 1;
+        break;
+      case "Jump":
+        var domIp = dom.parentElement.all.tags("INPUT")[0];
+        var m = domIp.getAttribute("tt.total.page")*1;
+        var v = domIp.value*1;
+        if (v<=0 || v>m) {
+          __alert("你所请求的页数不存在！");
+          return;
+        }
+        targetPage = v-1;
+        break;
+    }
+    _dom.setAttribute("tt.current", targetPage);
+    load();
+  }
+}
+
+/**
+ * this it's an script replace function when the special str
+ * has the code [SCRIPT]doXXX('aaa')[/SCRIPT] it will run the
+ * doXXX('aaa') script and replace the return value in the special
+ * area
+ */
+function __scriptReplacer($scriptCode) {
+  var idx = $scriptCode.indexOf("[SCRIPT]");
+  if (idx==-1) { //do not has script
+    return $scriptCode;
+  }
+  var tmp = [];
+  var startIdx = 0;
+  var endIdx = 0;
+  var scriptStr = null;
+  while (idx!=-1) {
+    tmp.push($scriptCode.substring(startIdx, idx));
+    endIdx = $scriptCode.indexOf("[\/SCRIPT]", idx + 8);
+    scriptStr = $scriptCode.substring(idx+8, endIdx);
+    tmp.push(eval(scriptStr));
+    idx = $scriptCode.indexOf("[SCRIPT]", endIdx);
+    startIdx = endIdx + 9;
+  }
+  tmp.push($scriptCode.substr(endIdx + 9));
+  return tmp.join("");
+
+}
+
+_JUICECLASSES['TableLister'] = TableLister;
+
+  ]]></scripts>

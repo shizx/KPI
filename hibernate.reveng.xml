@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-reverse-engineering PUBLIC "-//Hibernate/Hibernate Reverse Engineering DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-reverse-engineering-3.0.dtd" >
+
+<hibernate-reverse-engineering>
+
+	<table name="torginfo" catalog="kpi">
+		<primary-key>
+			<generator class="uuid.hex"></generator>
+		</primary-key>
+	</table>
+	<table name="kpiinfo" catalog="kpi" class="KPIInfo"></table>
+	<table name="kpihistorycompareformula" catalog="kpi"
+		class="KPIHistoryCompareFormula">
+	</table>
+	<table name="kpivalidateformula" catalog="kpi"
+		class="KPIValidateFormula">
+	</table>
+	<table name="kpivalue" catalog="kpi" class="KPIValue"></table>
+	<table name="orginfo" catalog="kpi" class="OrgInfo"></table>
+	<table name="role" catalog="kpi" class="Role"></table>
+	<table name="user" catalog="kpi" class="User"></table>
+	<table name="userrole" catalog="kpi" class="UserRole"></table>
+	<table name="orgkpirelation" catalog="kpi" class="OrgKPIRelation"></table>
+</hibernate-reverse-engineering>

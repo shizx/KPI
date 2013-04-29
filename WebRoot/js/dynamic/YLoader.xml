@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="GB2312"?>
+<scripts><![CDATA[
+//))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+/**
+ * dynamice outer data load
+ * note: actionClassInstance must implement the interface below
+ * public generateUrl() return which url you want to load data
+ * public loadStart() before the load action start here i always use to set something like kiss it's in process:)
+ * public loaded($xdoc) when the xml data loaded, $xdoc it's the data it loaded
+ */
+//((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((
+function YLoader() {
+  var _oXml = __getXmlObject();
+  var _action = null;
+
+
+  window.attachEvent("onunload", clear);
+  function clear() {
+    if (_oXml!=null) {
+      _oXml.onreadystatechange = new Function("return false;");
+      _oXml = null;
+    }
+  }
+
+  this.load = load;
+  function load($actionClassIns) {
+    _action = $actionClassIns;
+    _oXml.async = true;
+    _oXml.onreadystatechange = notify;
+    _action.loadStart();
+    _oXml.load(__noCacheUrl(_action.generateUrl()));
+  };
+
+  function notify() {
+    if (_oXml.readyState == 4){
+      var err = _oXml.parseError;
+      if (err.errorCode!=0) {
+        alert("读取数据时出现错误: ERROCODE: 001(可能是你长时间没有操作所至，请重新登录");
+        return;
+      } //end strut error
+
+      if (!__xmlErrorHandler(_oXml)) {
+        var msg = _oXml.documentElement.childNodes[0].text;
+        if (typeof(_action.loadError)=="function") {
+          _action.loadError(msg);
+        }else {
+          alert(msg);
+        }
+        return;
+      } //end error
+      _action.loaded(_oXml);
+    }
+  }
+}
+]]></scripts>

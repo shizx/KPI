@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="GB2312"?>
+<scripts><![CDATA[
+//桌面快捷连接
+//@author: TANTOM
+function DeskQuickFav() {
+
+  var _dom;
+  var _domAD;
+  var _gw = 400;
+  var _gh = 100;
+  var _gl; // the layer
+  var _btAdd;
+  var _btUpdate;
+  var _btClose;
+  var _btDel;
+  var _domC;
+  var _domS;
+  var _domH;
+  var _domT;
+  this.init = function($d) {
+    _dom = $d;
+    _dom.oncontextmenu = new Function('return false');
+
+    var sb = [];
+    sb.push("<div style='width:100%;border:1 solid #dddddd;padding:3px' style='background-color:#DDEAF3'>");
+    sb.push("<table cellspacing=0 cellpadding=0 width=100%><tr><td>我的书签</td><td align=right><img src=" + _c + "/img/tt/fav.gif title='增加新书签\n在书签上使用鼠标右键进行修改与删除' id=DomAdd style='cursor:hand'></td></tr></table></div>");
+    sb.push("<div style='width:100%;height:100px;border-width:0 1 1 1;border-style:solid;border-color:#dddddd;padding:5px;line-height:20px'></div>");
+		sb.push("<div style='background-color:#F8F8F8;border:1 solid #cccccc;padding:0px;position:absolute; left:2px; top:2px;z-index:299;color:black;display:none;width:" + _gw + "px;height:" + _gh + "px' onmousedown='event.cancelBubble=true'>");
+		sb.push("<div id=DXHead style='font-family:Tahoma;background-color:#E4E8F8;padding:3px;width:100%;border-width:0 0 1 0;border-style:solid;border-color:#cccccc'></div>");
+		sb.push("<div style='width:100%;padding:3px'><table width=100%><tr><td>名称：</td><td><input type=text class='ip_text notnull' name=txName><img src='" +_c + "/img/tt/trash.gif' title='删除此书签' id=BtnDel style='cursor:hand'></td><td colspan=2 id=DXType><input name=txType type=radio value=1 checked id=DQFT1><label for=DQFT1>书签</label> <input name=txType type=radio value=0 id=DQFT2><label for=DQFT2>目录</label></td></tr>");
+		sb.push("<tr id=DTRUrl><td>地址：</td><td colspan=3><input name=txUrl type=text class='ip_text notnull' style='width:100%'></td></tr>");
+		sb.push("<tr><td>顺序：</td><td><input type=text class=ip_text name=txOrder maxlength=3></td><td id=DTDCat colspan=2>目录：<span id=DCatSel></span></td></tr>");
+		sb.push("<tr><td colspan=4 align=center><input type=button value='增加' id=BtnAdd> <input type=button value='修改' id=BtnUpdate> <input type=button value='关闭' id=BtnClose></td></tr>");
+		sb.push("</table><input type=hidden name=txUuid value=''><input type=hidden name=txOpType value=''></div>");
+    sb.push("</div>");
+    _dom.innerHTML = sb.join("");
+    _domAD = _dom.all.DomAdd;
+    _gl = _dom.children[2];
+    __addEvent(_domAD, "onclick", doAddView);
+    _btAdd = _dom.all.BtnAdd;
+    _btUpdate = _dom.all.BtnUpdate;
+    _btClose = _dom.all.BtnClose;
+    _btDel = _dom.all.BtnDel;
+    __addEvent(_btClose, "onclick", doClose);
+    __addEvent(_btAdd, "onclick", doAdd);
+    __addEvent(_btUpdate, "onclick", doUpdate);
+    __addEvent(_btDel, "onclick", doDel);
+    var dTs = _dom.all.txType;
+    __addEvent(dTs[0], "onclick", doSwitchType);
+    __addEvent(dTs[1], "onclick", doSwitchType);
+    _domC = _dom.children[1];
+    _domS = _dom.all.DCatSel;
+    _domH = _dom.all.DXHead;
+    var dTxN = _dom.all.txName;
+    __addEvent(dTxN, "onkeypress", keyHandle);
+    dTxN = _dom.all.txUrl;
+    __addEvent(dTxN, "onkeypress", keyHandle);
+    __addEvent(_dom, "onmousedown", mouseHandle);
+    _domT = _dom.all.DXType;
+    load();
+  };
+
+  function keyHandle() {
+  	if (event.keyCode==13) {
+  		if ("add"==_curAct) {
+  			doAdd();
+  		}
+  	}
+  }
+
+  function mouseHandle() {
+
+  	if (event.button==1) {
+
+  	}else if (event.button==2) {
+  		event.cancelBubble = true;
+  		var d = event.srcElement;
+  		if (d.tagName=="IMG") {
+  			d = d.parentElement;
+  		}
+  		var uuid = d.getAttribute("tt.uuid");
+  		if (uuid!=null) {
+  			doUpdateView(d);
+  		}else {
+  			doAddView();
+  		}
+  	}
+  }
+
+  function doSwitchType() {
+  	var t = _dom.all.txType[0].checked;
+  	if (t) {
+  		_dom.all.DTDCat.style.display = "";
+  		_dom.all.DTRUrl.style.display = "";
+  	}else {
+  		_dom.all.DTDCat.style.display = "none";
+  		_dom.all.DTRUrl.style.display = "none";
+  	}
+  }
+
+  function doClose() {
+  	_gl.style.display = "none";
+  }
+
+  function doAdd() {
+  	if (!checkValues("Add")) {
+  		return;
+  	}
+  	_Xuice.xpost(_dom, _c + "/app/fav/action/fav_add_action.jsp", false, onAddDone);
+  	function onAddDone($doc) {
+  		load();
+  	}
+  }
+
+  function doUpdate() {
+  	if (!checkValues("Add")) {
+  		return;
+  	}
+  	_Xuice.xpost(_dom, _c + "/app/fav/action/fav_edit_action.jsp", false, onEDone);
+  	function onEDone($doc) {
+  		load();
+  	}
+  }
+
+  function doDel() {
+  	var t = _dom.all.txOpType.value;
+  	if (t=="0") {
+  		if (!confirm("你要删除的是书签目录，此目录下的书签也会一并被删除，你确认吗？")) {
+  			return;
+  		}
+  	}else {
+  		if (!confirm("你确认要删除此书签吗？")) {
+  			return;
+  		}
+  	}
+  	var u = _dom.all.txUuid.value;
+  	_Xuice.url(_c + "/app/fav/action/fav_del_action.jsp?u=" + u + "&t=" + t, onDelDone, false);
+  	function onDelDone() {
+  		load();
+  	}
+  }
+
+  function checkValues($t) {
+  	var n = _dom.all.txName.value;
+  	if (__isEmpty(n)) {
+  		alert("名称是必须输入的");
+  		return false;
+  	}
+  	var od = _dom.all.txOrder.value;
+  	if (!__isInt(od)) {
+  	    alert("顺序号必须输入整数");
+  	    return false;
+    }
+  	if ($t=="Add") {
+  		var t = _dom.all.txType[0].checked;
+  		if (t) {
+  			n = _dom.all.txUrl.value;
+  			if (__isEmpty(n)) {
+  				alert("地址还未写内容");
+  				return false;
+  			}
+  		}
+  	}
+
+  	return true;
+  }
+  var _ds = [];
+  function load() {
+  	doClose();
+  	//读取用户的连接定义
+    _Xuice.url(_c + "/app/fav/xml/my_fav.jsp", onLoaded, true);
+    function onLoaded($doc) {
+    	_ds = [];
+    	var ns = $doc.selectNodes("/xuice/l[@p='']");
+    	var sb = [];
+    	var t,o;
+    	var ds = [];
+    	for (var i=0; i<ns.length; i++) {
+    		o = ns[i];
+    		t = o.getAttribute("t");
+    		if (t=="1") { //link
+    			sb.push(createLink(o));
+    			sb.push("&nbsp;");
+    		}else { //directory
+    			var dN = {n:o.selectSingleNode("n").text,u:o.getAttribute("u"),o:o.getAttribute("o")};
+    			ds.push(dN);
+    			_ds.push(dN);
+    		}
+    	}
+    	for (var i=0; i<ds.length; i++) {
+    		sb.push("<div style='width:100%;border-width:0 0 1 0;border-style:solid;border-color:#eeeeee;padding-top:3px;letter-spacing:2px'><img src=" + _c + "/img/tt/y.gif align=absmiddle>&nbsp;");
+    		sb.push("<span tt.uuid=\"" + ds[i].u + "\" tt.order=\"" + ds[i].o + "\" tt.type=0 style='cursor:default'>" + ds[i].n + "</span>");
+    		sb.push("</div>");
+    		sb.push("<div style='padding-top:3px'>");
+    		ns = $doc.selectNodes("/xuice/l[@p='" + ds[i].u + "']");
+    		for (var j=0; j<ns.length; j++) {
+    			o = ns[j];
+    			sb.push(createLink(o));
+    			sb.push("&nbsp;");
+    		}
+    		sb.push("</div>");
+
+    	}
+    	_domC.innerHTML = sb.join("");
+    }
+  }
+
+  function createLink($o) {
+  	var u = $o.selectSingleNode("u").text;
+  	if (u.indexOf(":/")==-1) {
+  		u = "http://" + u;
+  	}
+  	return "<a href='" + u + "' target=_blank style='letter-spacing:0px' tt.uuid=\"" + $o.getAttribute("u") + "\" tt.order=\"" + $o.getAttribute("o") + "\" tt.parent=\"" + $o.getAttribute("p") + "\"><img src=" + _c + "/img/tt/n7.gif border=0 align=absmiddle>" + $o.selectSingleNode("n").text + "</a>";
+  }
+  var _curAct = null;
+  var sbAdd = "";
+  function doAddView() {
+  	updateCatSel();
+  	_dom.all.txType[0].click();
+  	_dom.all.txName.value = "";
+  	_dom.all.txUrl.value = "http://";
+  	_curAct = "add";
+  	_btDel.style.display = "none";
+  	_domT.style.display = "";
+  	_domH.innerHTML = "新增书签";
+  	_btAdd.style.display = "";
+  	_btUpdate.style.display = "none";
+
+  	_dom.all.txOrder.value = "999";
+
+  	var dpt = 0;
+  	var dpbody = __get("DomBody");
+  	if (dpbody != null) {
+  	    dpt = dpbody.scrollTop;
+  	}
+
+  	var lf = event.x - _gw;
+  	if (lf<0) {
+  	  lf = event.x;
+  	}
+
+  	_gl.style.left = lf;
+  	_gl.style.top = event.clientY + dpt - 24;
+  	_gl.style.display = "";
+
+  	//document.body.attachEvent("onmousedown", ViewHandle);
+
+  	_dom.all.txName.focus();
+
+  }
+
+  function doUpdateView($d) {
+
+  	updateCatSel();
+  	_btDel.style.display = "";
+  	_curAct = "edit";
+  	_domH.innerHTML = "修改属性";
+  	_btAdd.style.display = "none";
+  	_btUpdate.style.display = "";
+  	_dom.all.txUuid.value = $d.getAttribute("tt.uuid");
+  	var tType = $d.getAttribute("tt.type");
+  	_domT.style.display = "none";
+
+  	_dom.all.txName.value = $d.innerText;
+  	_dom.all.txOrder.value = $d.getAttribute("tt.order");
+  	if (tType=="0") { //dir
+  	    _dom.all.txType[1].click();
+  		_dom.all.txOpType.value = "0";
+  		_dom.all.DTDCat.style.display = "none";
+  		_dom.all.DTRUrl.style.display = "none";
+  	}else {
+  	    _dom.all.txType[0].click();
+  		_dom.all.txOpType.value = "1";
+  		_dom.all.DTDCat.style.display = "";
+  		_dom.all.DTRUrl.style.display = "";
+  		_dom.all.txParent.value = $d.getAttribute("tt.parent");
+  		_dom.all.txUrl.value = $d.getAttribute("href");
+  	}
+
+  	var dpt = 0;
+  	var dpbody = __get("DomBody");
+
+  	if (dpbody != null) {
+  	    dpt = dpbody.scrollTop;
+  	}
+
+  	var lf = event.x - _gw;
+  	if (lf<0) {
+  	  lf = event.x;
+  	}
+
+  	_gl.style.left = lf;
+  	_gl.style.top = event.y + dpt - 24;
+  	_gl.style.display = "";
+  	_dom.all.txName.focus();
+
+  	//document.body.attachEvent("onmousedown", ViewHandle);
+  }
+
+  function ViewHandle() {
+  	doClose();
+  	//document.body.detachEvent("onmousedown", ViewHandle);
+  }
+
+  function updateCatSel() {
+  	var sb = [];
+  	sb.push("<select name=txParent>");
+  	sb.push("<option value=''></option>");
+  	for (var i=0; i<_ds.length; i++) {
+  		sb.push("<option value='" + _ds[i].u + "'>" + _ds[i].n + "</option>");
+  	}
+  	sb.push("</select>");
+  	_domS.innerHTML = sb.join("");
+  }
+}
+
+_JUICECLASSES['DeskQuickFav'] = DeskQuickFav;
+  ]]></scripts>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="GB2312"?>
+<scripts><![CDATA[
+/**
+ * link action
+ */
+function __xmlLinkActionCore($url, $handler) {
+  if (window._linkActionInProcess==null) {
+    window._linkActionInProcess = false;
+  }
+
+  if (window._linkActionInProcess==true) {
+    __alert("有操作正在进行当中请稍候...");
+    return;
+  }
+
+  if (window._domLinkActionFrame==null) {
+    window._domLinkActionFrame = __createElementByHTML("<iframe name='" + __uuid() + "' style='display:none' src='about:blank'></iframe>");
+    document.body.insertAdjacentElement("beforeEnd", window._domLinkActionFrame);
+  }
+
+  window._domLinkActionFrame.onreadystatechange = actionListenerLA;
+  window._linkActionInProcess = true;
+  window._domLinkActionFrame.src = __noCacheUrl($url);
+
+  _waitId = __wait();
+
+  function actionListenerLA() {
+    if (window._domLinkActionFrame.readyState=="complete") {
+
+      __unwait(_waitId);
+      window._linkActionInProcess = false;
+      window._domLinkActionFrame.onreadystatechange = new Function("return false");
+      if ($handler!=null) {
+        $handler();
+      }
+    }
+  }
+}
+window.__xmlLinkAction = __xmlLinkActionCore;
+ ]]></scripts>

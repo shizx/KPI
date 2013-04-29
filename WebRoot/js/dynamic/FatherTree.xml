@@ -1,0 +1,1620 @@
+<?xml version="1.0" encoding="GB2312"?>
+<scripts><![CDATA[
+
+/**
+ * operations of the dom objects style change
+ */
+function XStyleUtil() {
+
+  var sColorNew = null;
+  var sColorOld = null;
+
+  this.activeOverColor      = activeOverColor;
+  this.colorOver            = colorOver;
+  this.colorOut             = colorOut;
+
+  /**
+   * active the over color normal use for a text inside a <td>
+   * @param Dom domObj
+   * @param String sColor
+   */
+  function activeOverColor(domObj, sColor) {
+    sColorNew = sColor;
+    __addEvent(domObj, "onmouseover", colorOver);
+    __addEvent(domObj, "onmouseout",colorOut);
+  }
+
+  /**
+   * text color change when the mouse over
+   * @return void
+   */
+  function colorOver() {
+    var domObj = event.srcElement;
+    sColorOld = domObj.currentStyle.color;
+    domObj.style.color = sColorNew;
+    domObj.style.textDecoration = "underline";
+  }
+
+  /**
+   * text color restore
+   * @return void
+   */
+  function colorOut() {
+    var domObj = event.srcElement;
+    if (domObj.style.color.toUpperCase()==sColorNew.toUpperCase()) {
+      domObj.style.color = sColorOld;
+      domObj.style.textDecoration = "none";
+    }
+  }
+
+
+}
+
+//mask to a static instance
+var StyleUtil = new XStyleUtil();
+
+
+/**
+ * Xml读取的工具类，负责读取请求的xml并返回doc文档，一个只在一个线程中运行
+ * 对同进读取的限制在调用类中控制
+ * 启动日期： 2002-12-26 14:03
+ */
+function XmlLoader($async) {
+
+  var oXml = null; //ActiveX控件,MS提供
+  var vObservers = []; //观察者链表
+  var sProcessKey = null; //进程序的关键字
+  var _async = $async;
+
+  window.attachEvent("onunload", clear);
+
+  function clear() {
+    if (oXml!=null) {
+      oXml.onreadystatechange = new Function("return false;");
+      oXml = null;
+    }
+  }
+
+  /**
+   * private 获得一个读取的基类控制，只创建一个
+   * @todo 根据IE浏览器版本，返回不同版本的XMLDom控件
+   * @return XMLDOM
+   */
+  function getLoader() {
+    if (oXml==null) {
+      oXml = __getXmlObject();
+      oXml.async = _async; //设置为异步或同步操作
+    }
+    return oXml;
+  }
+
+  /**
+   * public 添加一个观察者，在一个xml的异步处理完后，将会通知各个观察者
+   * @param observer 观察者实现类
+   * @return void
+   */
+  this.addObserver = addObserver;
+
+  function addObserver(oObserver) {
+    vObservers.push(oObserver);
+  }
+
+  /**
+   * 读取一个xml的文件
+   * @param sFile 文件的地址
+   * @return void
+   */
+  this.load = load;
+
+  function load(sFile) {
+    sProcessKey = sFile;
+    getLoader().load(sFile);
+    if (_async) {
+      getLoader().onreadystatechange = notify;
+    }else {
+      notify();
+    }
+  }
+
+  /**
+   * private 读取一个xml的文件，成功后发提示至各个观察者
+   * @param sProcessKey
+   * @return void
+   */
+  function notify() {
+    var oXml = getLoader();
+    if (oXml.readyState == 4){
+      var err = oXml.parseError;
+      if (err.errorCode!=0)
+        oXml = null;
+
+      for (var i=0, len=vObservers.length; i<len; i++) {
+        vObservers[i].update(oXml, sProcessKey);
+      }
+    }//end 读取完毕
+  }
+
+  this.destroy = function() {
+    if (oXml!=null) {
+      oXml.onreadystatechange = new Function("return false");
+      oXml.abort();
+    }
+    clear();
+
+  };
+}
+
+
+/**
+ * 核心的数据存放模式哈希表，全框架很多部分代码使用该类，属于基类
+ * 使用了数组对象，注意清空其对象的使用
+ */
+function HashMap() {
+  this.put = put;
+  this.get = get;
+  this.remove = remove;
+  this.size = size;
+  this.values = values;
+  this.keySet = keySet;
+  this.toString = toString;
+  this.empty = empty;
+  this.db = db;
+
+  var _db = new Array();
+
+  /**
+   * 存放一个对象
+   * @param key 索引字
+   * @param value 值
+   * @return void
+   */
+  function put($key, $value) {
+    _db[$key] = $value;
+  }
+
+  /**
+   * 暴露出内部的数据存放对象，减少性能的消耗，不再需要先用
+   * keySet再用iterator来访问
+   */
+  function db() {
+    return _db;
+  }
+
+  /**
+   * 获得一个值
+   * @param key 索引
+   * @return value
+   */
+  function get($key) {
+    var v = _db[$key];
+    if (typeof(v)=="undefined")
+      return null;
+    return v;
+  }
+
+  /**
+   * 删除一个key
+   * @param key 索引
+   */
+  function remove($key) {
+    var t = get($key);
+    delete _db[$key];
+    return t;
+  }
+
+  /**
+   * 获得当前的大小
+   * @return int
+   */
+  function size() {
+    var c = 0;
+    for (var i in _db){
+      c++;
+    };
+    return c;
+  }
+
+  /**
+   * 获得全部的索引
+   * @return Array()
+   */
+  function keySet() {
+    var t = new Array();
+    for (var i in _db) {
+      t[t.length] = i;
+    }
+    return t;
+  }
+
+  /**
+   * 获得全部的值
+   * @return Array()
+   */
+  function values() {
+    var t = new Array();
+    for (var i in _db) {
+      t[t.length] = _db[i];
+    }
+    return t;
+  }
+
+  /**
+   * 清空整个数组
+   */
+  function empty() {
+    _db = [];
+  }
+
+  /**
+   * 描述其内部的内容
+   * @return String
+   */
+  function toString() {
+    var aryKeys = keySet();
+    var sTmp = "";
+    for (var i in aryKeys) {
+      sTmp += aryKeys[i] + " = [ " + get(aryKeys[i]) + " ]\n";
+    }
+    return sTmp;
+  }
+}
+
+/**
+ * 树型控制的配置模型config model
+ * @启动日期 2002-12-26 13:50
+ */
+function JTreeDefault($insName, $noNodeLine) {
+  this.instance = null; //树的实例
+  this.maxPoolSize = 2; //最大的同时读取数
+  this.css = "jtree.css";
+  this.errorMaxPool = "超过最大线程数，请等候其它线程的任务先完成";
+  this.errorThreadRuning = "线程正在进行中，请不要重复按";
+  this.errorLoadFile = "读取文件失败";
+  this.overNodeColor = "#0000FF";
+  this.src = null; //读取数据的地址
+  this.noNodeLine = $noNodeLine; //是否不显示树前的连接图标线
+
+  this.imgI = new Image();
+  var f = $noNodeLine?"nl/":"";
+  this.imgI.src = _c + "/img/jtree/" + f + "I.gif";
+  this.imgL = new Image();
+  this.imgL.src = _c + "/img/jtree/" + f + "L.gif";
+  this.imgLminus = new Image();
+  this.imgLminus.src = _c + "/img/jtree/" + f + "Lminus.gif";
+  this.imgLplus = new Image();
+  this.imgLplus.src = _c + "/img/jtree/" + f + "Lplus.gif";
+  this.imgT = new Image();
+  this.imgT.src = _c + "/img/jtree/" + f + "T.gif";
+  this.imgTminus = new Image();
+  this.imgTminus.src = _c + "/img/jtree/" + f + "Tminus.gif";
+  this.imgTplus = new Image();
+  this.imgTplus.src = _c + "/img/jtree/" + f + "Tplus.gif";
+  this.imgNodeA = new Image();
+  this.imgNodeA.src = _c + "/img/jtree/" + f + "L_nodeA.gif";
+  this.imgNodeAO = new Image();
+  this.imgNodeAO.src = _c + "/img/jtree/" + f + "L_nodeAO.gif";
+  this.imgNodeB = new Image();
+  this.imgNodeB.src = _c + "/img/jtree/" + f + "L_nodeB.gif";
+  this.imgLoading = new Image();
+  this.imgLoading.src = _c + "/img/jtree/loading.gif";
+
+  this.PRE = $insName; //id对象的前缀，避免与其它组件产生冲突
+  this.IMGPRE = this.PRE + "IMG"; //连接图片的前缀
+  this.LOADPRE = this.PRE + "LOAD"; //正在下载的前缀
+  this.NAMEPRE = this.PRE + "NAME";
+  if ($noNodeLine) {
+    this.last = "<div style='width:19px'/>";
+  }else {
+    this.last = "<div style='width:16px'/>";
+  }
+  this.linkImgStyle = "style=\"cursor:hand\"";
+  this.imgScript = imgScript;
+  this.nameScript = nameScript;
+
+
+  /**
+   * @param sKey 索引关键字
+   */
+  function imgScript(sKey) {
+    return "onmousedown=" + this.instance + ".expandNode('" + sKey + "')";
+  }
+
+  /**
+   * @param sKey 唯一标识
+   */
+  function nameScript(sKey) {
+    return "onclick=" + this.instance + ".clickNode('" + sKey + "')";
+  }
+}
+
+/**
+ * com.tantom.js.swing.JTree 使用的节点模型基类，[key][name]为强制使用属性 - 不能修改
+ */
+function TreeNodeModel() {
+  this.key = null;
+  this.name = null;
+  this.hasChild = null;
+  this.url = null;
+  this.icon = null;
+  this.open = null;
+  this.level = null;
+  this.description = null;
+}
+
+/**
+ * 树控制，使用动态加载方式，唔写英文注析了，搞到自己都体唔明
+ * 启动日期： 2002-12-26 13:41
+ * <span id=TreeRoot level=-1></span> 根部的level一定要指定为 -1
+ * @rebuild to Juice Componentabled at 2003-12-1 1:20
+ * @param mConfig 基本属性的配置
+ * @param mNode 一个子的属性配置，需要继承com.tantom.model.swing.TreeNodeModel，只是类的名字，不是实例
+ * @author:TANTOM
+ * @note: 写的太旧了，都用的好好的不想重写了，虽然复杂了一点可功能都能用，包装了一下到Juice组件规范当中
+ */
+function JTree($mConfig) {
+  this.updateSrc = updateSrc;
+
+  function updateSrc($src) {
+    mConfig.src = $src;
+  };
+
+  this.loadNode = loadNode;
+  this.update = update;
+  this.expandNode = expandNode;
+  this.clickNode = clickNode;
+
+  this.initNode = initNode;
+  this.isLoading = isLoading;
+  var _autoHeightDom = null;
+  var _autoHeightSize = 0;
+  var _autoHeightFix = 0;
+  function initNode($node) {
+    _defaultRootDom = $node;
+    _autoHeightDom = $node.getAttribute("tt.autoHeight");
+    _autoHeightFix = $node.getAttribute("tt.fixHeight")||0;
+  };
+
+  this.getRootDom = function() {
+    return _defaultRootDom;
+  };
+  this.reload = reload;
+
+  //获得连接的图片对象，如果返回空表示这个节点没有子
+  function getLinkImg($key) {
+    return document.getElementById(mConfig.IMGPRE + "L" + $key);
+  }
+
+
+
+  //树是否正在加载当中
+  function isLoading() {
+    return _bLoadingTree;
+  }
+
+  var _bCheckWhenLoaded = false;
+
+  /**
+   * 传入多个刷新的key值，程序内部先比较
+   */
+  this.reloadX = function($key) {
+     var ars = $key.split(",");
+     if (ars.length==1) {
+       reload($key);
+     }else { //要先比较这两个是否显示在树上，且是否存在父子关系
+       //如果存在一个是跟节点则只用刷新根节点
+       if (ars[0]==null||ars[0]==""||ars[1]==null||ars[1]=="") {
+         reload("");
+       }else {
+          var a1 = hmNodes.get(ars[0]);
+          var a2 = hmNodes.get(ars[1]);
+          if (a1!=null && a2!=null) {
+              if (a1.key==a2.key) {
+                  reload(a1.key);
+              }else {
+                  _bAsyn = false;
+                  _bCheckWhenLoaded = true;
+                  reload(a1.key);
+                  a2 = hmNodes.get(ars[1]);
+                  if (a2!=null) { //因为重载a1时可能整棵树的结构都会有变化
+                    reload(a2.key);
+                  }
+                  _bAsyn = true;
+              }
+          }else {
+              if (a1==null && a2!=null) {
+                reload(a2.key);
+              }else if (a1!=null && a2==null) {
+                reload(a1.key);
+              }else { //没可能这样
+
+              }
+          }
+       }
+     }
+  };
+
+  function reload($key) {
+    if ($key==null||$key=="") {
+      _defaultRootDom.innerHTML = "";      
+      hmLoadedNodes = new HashMap();
+      hmNodes = new HashMap();
+      loadNode(_defaultRootDom, 0, "2", "1");
+    }else {
+      var bClose = hmLoadedNodes.get($key);
+
+      if (bClose==null) { //未加载
+        //如果本身是没有子的选择的先重新加载父
+        var domLinkImg = getLinkImg($key);
+        if (domLinkImg==null) { //本身这个节点是没有子的
+          var domObj = getDom($key);
+          if (domObj!=null) { //如果此节点已经出现在树节点上则直接读取
+            _bCheckWhenLoaded = true;
+            clearChilds($key);
+            loadNode(domObj, $key);
+          }else {
+            _bCheckWhenLoaded = true;
+              var parentNode = getParent($key);
+              if (parentNode==null || parentNode.key=="ROOT") { //这是根节点了
+                reload();
+                return;
+              }
+              _bAsyn = false;
+              reload(parentNode.key); //刷新父
+              _bAsyn = true;
+              var domLinkImg = getLinkImg($key);
+              if (domLinkImg!=null) { //刷新父后发现有子
+                expandNode($key);
+                hmLoadedNodes.put($key, false);
+              }
+              return;
+           }
+        }else {
+          expandNode($key);
+        }
+      }else {
+        _bCheckWhenLoaded = true;
+        clearChilds($key);
+        if (bClose==true) { //已经加载但被关闭了
+          hmLoadedNodes.remove($key);
+          expandNode($key);
+        }else { //正打开着
+          updateImg($key);
+          hmLoadedNodes.remove($key);
+          expandNode($key);
+          //bug fix 2006-4-26reload后这个子应该设置为已加载，且为被关闭
+          hmLoadedNodes.put($key, false);
+        }
+      }//end bClose check
+      _bCheckWhenLoaded = true;
+    }
+  };
+
+  //清除子的状态与外观
+  function clearChilds($key) {
+    var childs = lookupChilds($key);
+    for (var i=0; i<childs.length; i++) {
+      var childKey = parseKey(childs[i].getAttribute("id"));
+      if (getLinkImg(childKey)!=null) { //这个是有子的，从已加载中去掉
+        clearChilds(childKey);
+        hmLoadedNodes.remove(childKey);
+        hmNodes.remove(childKey);
+      }
+      childs[i].outerHTML = "";
+    }
+  }
+
+  /** 自动点击第一个选择的节点 */
+  this.clickFirst = clickFirst;
+
+  function clickFirst() {
+    clickByIndex(0);
+  };
+
+  /** 按序列来点击 */
+  this.clickByIndex = clickByIndex;
+
+  function clickByIndex($idx) {
+    var keys = hmNodes.keySet();
+    if (keys.length==0) {
+      return;
+    }
+    var firstNode = hmNodes.get(keys[$idx]);
+    if (firstNode==null) {
+      return;
+    }
+    clickNode(firstNode.key);
+  };
+
+  var _defaultRootDom = null;
+  var mConfig = $mConfig;
+  var objPM = new ProcessManager(mConfig);
+  var objPathUtil = new TreePathUtil(mConfig);
+  var hmLevelChain = new HashMap(); //保存层次的是否最后一个关系
+  var hmLevels = new HashMap(); //保存层次关系的永久值
+  var hmLoadedNodes = new HashMap(); //已经加载过的父亲索引
+  var hmNodes = new HashMap(); //全部的子的实例保存起来
+  
+  this.getAllNodes = function() {
+    return hmNodes;
+  };
+  
+	var _instance = null;
+	var _clickNodeFct = null;
+	var _objInstance = null;
+	var _lastClickNode = null; //最后点中的节点
+	var _clickNodeChangeFct = null;
+	var _nodeRenderFct = null; //节点内容渲染的方法
+	var _nodeOpenFct = null;
+	var _nodeCloseFct = null;
+	var _nodeLoaded = null;
+
+	this.setInstanceName = setInstanceName;
+
+    function setInstanceName($name, $instance) {
+		_instance = $name
+		_objInstance = $instance;
+		mConfig.instance = _instance; //指定实例以便配置时不用再多次转换
+		if (eval("window." + $name + "_clickNode")!=null) {
+			_clickNodeFct = eval("window." + $name + "_clickNode");
+		}
+		if (eval("window." + $name + "_clickNodeChange")!=null) {
+			_clickNodeChangeFct = eval("window." + $name + "_clickNodeChange");
+		}
+		if (eval("window." + $name + "_nodeRender")!=null) {
+			_nodeRenderFct = eval("window." + $name + "_nodeRender");
+		}
+		if (eval("window." + $name + "_nodeOpen")!=null) {
+			_nodeOpenFct = eval("window." + $name + "_nodeOpen");
+		}
+		if (eval("window." + $name + "_nodeClose")!=null) {
+			_nodeCloseFct = eval("window." + $name + "_nodeClose");
+		}
+
+
+		_nodeLoaded = eval("window." + $name + "_loaded");
+	};
+
+  /**
+   * 选择了一个节点
+   * @param sKey 唯一标识
+   */
+
+
+  function clickNode(sKey, $noFireClickEvent) {
+    if (_lastClickNode!=null) {
+        var nd = getName(_lastClickNode.key);
+        if (nd!=null) {
+          nd.style.textDecoration = "none";
+        }
+    }
+  	if (_clickNodeChangeFct!=null) { //先回调node change 方法
+  		if (_lastClickNode!=null) {
+  		  var nd = getName(_lastClickNode.key);
+  		  if (nd!=null) {
+  			  _clickNodeChangeFct(_lastClickNode, nd);
+  			}
+  		}
+  	}
+
+  	if (_clickNodeFct!=null) {
+  	  var nd = getName(sKey);
+  	  nd.style.textDecoration = "underline";
+  	  _clickNodeFct(hmNodes.get(sKey), nd, $noFireClickEvent);
+  	}
+
+  	_lastClickNode = hmNodes.get(sKey);
+  }
+
+  /**
+   * 如果是程序调用的选节点
+   */
+  this.clickNodeManual = clickNodeManual;
+
+  function clickNodeManual(sKey) {
+    clickNode(sKey, true);
+    /** 自动找寻父亲节点是否已经展开，如果未展开，就先展开 */
+    var parentNode = getParent(sKey);
+    while (parentNode!=null) {
+      var bClose = hmLoadedNodes.get(parentNode.key);      
+      if (bClose) {
+        updateImg(parentNode.key);
+        openNode(parentNode.key);
+      }
+      parentNode = getParent(parentNode.key);
+    }
+  };
+
+
+  /**
+   * public 读取一个子的树，会在父亲的Dom对象下获得其子的视图，前题节点是有子的
+   * @param domObj 父亲的Dom对象
+   * @param sKey 父亲的key值
+   * @param iLevel 指定的级别，基本为只获得其一层，但在初始化时是同时获得两层的
+   * @return void
+   */
+  function loadNode(domObj, sKey, iLevel, iType) {
+
+    /**
+     * 不指定层数则读取一层 */
+    if (iLevel==null)
+      iLevel = 1;
+
+    /**
+     * 不指定类型，则为向下读取 */
+    if (iType==null)
+      iType = 1;
+
+
+    if (!objPM.register(sKey, domObj))
+      return;
+
+
+    /**
+     * 显示正在加载几个字
+     */
+    showLoading(domObj);    
+    _XmlLD = new XmlLoader(_bAsyn);
+    _XmlLD.addObserver(_objInstance);
+    _XmlLD.addObserver(objPM);
+    var url = objPathUtil.buildPath(sKey, iLevel, iType);
+    _XmlLD.load(url);
+  }
+
+  var _XmlLD = null;
+
+  //当指定跟随高度的对象时每次大小变更时就对比高度
+  function autoHeightCheck() {
+
+    //更新高度
+    if (_autoHeightDom!=null) {
+      _defaultRootDom.style.height = "100%";
+      var cl = parseInt(__get(_autoHeightDom).style.height) - 11 - _autoHeightFix;
+      if (_defaultRootDom.clientHeight>cl) {
+        _defaultRootDom.style.height = cl;
+      }else {
+        _defaultRootDom.style.height = "100%";
+
+      }
+    }
+  }
+
+  /**
+   * public 实现观察者的方法
+   * @param sKey 是哪个线程返回的
+   * @param oXmlLoader 读取的控制类
+   * @return void
+   */
+  function update(oXml, sLoadPath) {
+
+    if (oXml==null) {
+      alert(mConfig.errorLoadFile);
+      return;
+    }
+    var sKey = objPathUtil.parseKey(sLoadPath);
+
+    /** 如果是属于错误信息 */
+    var domEKey = getLoad(sKey);
+    if (domEKey==null) { //在异步环境当中，前一正在加载的实例在未完成从后台读取数据时被删除了
+      return;
+    }
+    if (!__xmlErrorHandler(oXml, getLoad(sKey).parentElement)) {
+      return;
+    }
+
+    var sType = objPathUtil.parseType(sLoadPath);
+    var domParent = objPM.getProcess(sKey);
+    paintNode(domParent, oXml.documentElement); //0是编码处理
+
+
+    /**
+     * 删除正在加载的提示
+     */
+    if (sType==0) //如果是根的话，Loading也是根
+      sKey = 0;
+    killLoading(sKey);
+    autoHeightCheck();
+
+    /** 表示该节点是展开的 */
+
+    hmLoadedNodes.put(sKey, false);
+    if (sKey==0) { //这是根，因为在根时返回的子有可能是多级，这时详细处理子中的已读关系
+      var fns = oXml.selectNodes("//node");      
+      for (var i=0; i<fns.length; i++) {
+        if (fns[i].childNodes.length!=0) {
+          hmLoadedNodes.put(fns[i].getAttribute("key"), false);
+        }
+      }
+    }
+
+    /**
+     * 初始其它属性
+     */
+    var keys = hmNodes.keySet();
+    for (var i=0; i<keys.length; i++) {
+    	var mNode = hmNodes.get(keys[i]);
+    	/** 显示默认显示是关闭的 */
+    	if (mNode.open=="false") {
+    		expandNode(mNode.key);
+    		mNode.open="";
+    	}
+    	/** 以后可以在这扩展画完的操作 */
+    }
+
+    /**
+     * 调用已加载的方法
+     */
+    if (_nodeLoaded!=null) {
+      _nodeLoaded(sKey);
+    }
+    //如果reload一个节点而这个节点已经没有子（因为是动态删除操作）这时要更新连接图标
+    if (_bCheckWhenLoaded) { //由程序来触发这个检查
+      rebuildChain(sKey);
+      checkLinkImg(sKey);
+    }
+
+  }
+  function checkLinkImg(sKey) {
+      var lImg = getLinkImg(sKey);
+      if (lImg!=null) { //有链接图标的
+        var d = getDom(sKey);
+        var v = lookupChilds(sKey);
+        if (v.length==0) { //错误的状态，修正链接图标
+          lImg.style.cursor = "default";
+          lImg.onmousedown = null;
+          lImg.id = mConfig.IMGPRE;
+          var src = parseGif(lImg.src);
+          var domNodeImg = document.getElementById(mConfig.IMGPRE + "N" + sKey);//文件夹图标
+          if (domNodeImg!=null) {
+            if (domNodeImg.src==mConfig.imgNodeAO.src) {
+            domNodeImg.src = mConfig.imgNodeA.src;
+            }
+          }
+          if (src==parseGif(mConfig.imgLminus.src) || src==parseGif(mConfig.imgLplus.src)) {
+            lImg.src = mConfig.imgL.src
+          }
+          if (src == parseGif(mConfig.imgTminus.src) || src==parseGif(mConfig.imgTplus.src)) { // T-
+            lImg.src = mConfig.imgT.src
+          }
+          hmLoadedNodes.remove(sKey);
+        }
+      }else { //由无连接图标的变成有连接图标时的处理
+         var v = lookupChilds(sKey);
+        if (v.length>0) { //错误的状态，修正链接图标
+          lImg = getNameImg(sKey);
+          lImg.style.cursor = "hand";
+          var sc = _instance + ".expandNode('" + sKey + "')";
+          lImg.onmousedown = new Function(sc);
+          lImg.id = mConfig.IMGPRE + "L" + sKey;
+
+          var src = parseGif(lImg.src);
+          var domNodeImg = document.getElementById(mConfig.IMGPRE + "N" + sKey);//文件夹图标
+          if (domNodeImg!=null) {
+            if (domNodeImg.src==mConfig.imgNodeAO.src) {
+              domNodeImg.src = mConfig.imgNodeA.src;
+              hmLoadedNodes.put(sKey, true);
+            }
+          }
+          if (src==parseGif(mConfig.imgL.src)) {
+            lImg.src = mConfig.imgLminus.src;
+            hmLoadedNodes.put(sKey, false);
+          }
+          if (src==parseGif(mConfig.imgT.src)) {
+            lImg.src = mConfig.imgTminus.src;
+            hmLoadedNodes.put(sKey, false);
+          }
+
+        }
+      }
+      //检查前面的pad连接
+      var childs = getChildsModel(sKey);
+      for (var i=0; i<childs.length; i++) {
+        var obj = childs[i];
+        var nl = obj.level;
+        for (var j=0; j<nl*1; j++) {
+            var d = getDom(obj.key);
+            var t = d.children[0].rows[0].cells[j];
+            var bI = t.all.tags("IMG").length>0;
+
+            if (hmLevelChain.get(j)==true) { //链表层记录当前操作是最后一个
+              if (bI) {
+                t.innerHTML = mConfig.last;
+              }
+            }else {
+              if (!bI) {
+                t.innerHTML = "<img id=" + mConfig.IMGPRE + " src=" +mConfig.imgI.src+" align=absbottom >";
+              }
+            }//end if
+         }//end for
+       }//end for              
+      _bCheckWhenLoaded = false;
+  }
+  function parseGif($gif) {
+    var ix = $gif.lastIndexOf("/");
+    if (ix!=-1) {
+      return $gif.substr(ix+1);
+    }
+    return $gif;
+  }
+
+  var _bLoadingTree = false;
+  /**
+   * 在要加载的对象下面显示[正在加载]
+   * @param domObj 加载的对象的父亲
+   */
+  function showLoading(domObj) {
+    _bLoadingTree = true;
+    /**
+     * 处理前端的空位，要根据前几层的状态来决定使用的图片
+     */
+    var nodeLevel = domObj.level*1+1;
+    var padHtml = "";
+    for (var j=0; j<nodeLevel*1; j++) {
+      var img = ""; //pad中图片
+
+      if (hmLevelChain.get(j)==true) { //链表层记录当前操作是最后一个
+        img = mConfig.last;
+      }else {
+        img = "<img id=" + mConfig.IMGPRE + " src=" +mConfig.imgI.src+" align=absbottom >";
+      }
+      padHtml += "<td style='width:16px'>" + img + "</td>";
+    }
+
+    var loadingHtml = "<table  cellspacing=0 cellpadding=0 id=" + mConfig.LOADPRE + parseKey(domObj.id) + " ><tr>"+padHtml+"<td><img src=" + mConfig.imgLoading.src + " align=absbottom></td><td class=nodeName>正在下载...</td></tr></table>";
+    domObj.insertAdjacentHTML("beforeEnd", loadingHtml);
+  }
+
+  /**
+   * 删除一个正在加载的显示
+   * @param sKey 唯一标识
+   */
+  function killLoading(sKey) {
+    _bLoadingTree = false;
+    var domObj = getLoad(sKey);
+    domObj.outerHTML = "";
+  }
+
+  /**
+   * 画出返回的视图
+   * @param domParent 视图的父亲dom对象
+   * @param oXml xml代码对象
+   * @return void
+   */
+  function paintNode(domParent, oXml) {
+
+    var iLevel = domParent.level; //层级别，如果是根的上一级为-1
+    
+    for (var i=0; i<oXml.childNodes.length; i++) {
+      var nodeLevel = iLevel*1+1;
+      var xmlNode = oXml.childNodes[i];
+      var mNode = getModel(xmlNode, nodeLevel);
+
+
+
+      /**
+       * 处理是否最后一个的状态
+       */
+      bIsLast = i==oXml.childNodes.length-1;
+      hmLevelChain.put(nodeLevel, bIsLast);
+      hmNodes.put(mNode.key, mNode);
+
+      /**
+       * 模型保存处理
+       */
+      hmLevels.put(mNode.key, bIsLast);
+
+      /**
+       * 处理前端的空位，要根据前几层的状态来决定使用的图片
+       * 背景，较麻烦
+       */
+      var padHtml = [];
+      for (var j=0; j<nodeLevel*1; j++) {
+        padHtml.push("<td style='width:16px'>");
+        if (hmLevelChain.get(j)==true) { //链表层记录当前操作是最后一个
+          padHtml.push(mConfig.last);
+        }else {
+          padHtml.push("<img id=" + mConfig.IMGPRE + " src=" +mConfig.imgI.src+" align=absbottom >");
+        }
+        padHtml.push("</td>");
+      }
+      padHtml = padHtml.join("");
+
+
+      /** 连接的两个图片的视图代码 */
+      var imgHtml = ""; //子的图片node
+      var xyzPath = "";
+      var xyzKey = "";
+      var xyzScript = "";
+      if (mNode.hasChild=="true") {
+        if (xmlNode.hasChildNodes()) {
+        	/** 如果配置中有使用icon就使用指定的icon */
+        	if (mNode.icon!=null){
+        		xyzPath = mNode.icon;
+        	}else {
+        		xyzPath = mConfig.imgNodeAO.src;
+        	}
+        }else {
+        	/** 如果配置中有使用icon就使用指定的icon */
+        	if (mNode.icon!=null){
+        		xyzPath = mNode.icon;
+        	}else {
+        		xyzPath = mConfig.imgNodeA.src;
+          }
+        }
+        xyzKey = "N" + mNode.key;
+        xyzScript = "";
+      }else {
+      	/** 如果配置中有使用icon就使用指定的icon */
+      	if (mNode.icon!=null){
+      		xyzPath = mNode.icon;
+      	}else {
+      		xyzPath = mConfig.imgNodeB.src;
+    		}
+        xyzScript = "";
+      }
+
+      /**
+       * 更新，如果icon指定值为NONE就是没有ICON也不使用默认的
+       */
+      if ("NONE"==xyzPath) {
+        imgHtml = "";
+      }else {
+        if (xyzPath.indexOf("/")==0 && xyzPath.indexOf(_c)!=0) {
+         xyzPath = _c + xyzPath;
+       }
+        imgHtml = "<img id=" + mConfig.IMGPRE + xyzKey + " src=" + xyzPath + " align=absbottom " + xyzScript + ">";
+      }
+
+      /** 如果是最后一个显示不同的图标 */
+      var linkImgHtml = "";
+      xyzPath = "";
+      xyzKey = "";
+      xyzScript = "";
+      var xyzStyle = "";
+      if (!bIsLast) { //如果不是最后一个
+        if (mNode.hasChild=="true") {
+          /**
+           * 后台提供的数据可能只指示有子，但没指示下层是否展开
+           * 现指定如果有子就开
+           */
+          if (xmlNode.hasChildNodes()) {
+          	xyzPath = mConfig.imgTminus.src;
+          }else {
+          	xyzPath = mConfig.imgTplus.src;
+          }
+          /**
+           * 对有子的加上脚本控制
+           */
+          xyzScript = mConfig.imgScript(mNode.key);
+          xyzKey = "L" + mNode.key;
+          xyzStyle = mConfig.linkImgStyle;
+        }else {
+        	xyzScript = "";
+          xyzPath = mConfig.imgT.src;
+        }
+        linkImgHtml = "<img id=" + mConfig.IMGPRE + xyzKey +" src=" + xyzPath + " align=absbottom " + xyzScript + " " + xyzStyle + ">";
+      }else {
+        if (mNode.hasChild=="true") {
+          /**
+           * 后台提供的数据可能只指示有子，但没指示下层是否展开
+           * 现指定如果有子就开
+           */
+          if (xmlNode.hasChildNodes()) {
+          	xyzPath = mConfig.imgLminus.src;
+          }else {
+          	xyzPath = mConfig.imgLplus.src;
+          }
+          /**
+           * 对有子的加上脚本控制
+           */
+          xyzScript = mConfig.imgScript(mNode.key);
+          xyzKey = "L" + mNode.key;
+          xyzStyle = mConfig.linkImgStyle;
+        }else {
+        	xyzScript = "";
+          xyzPath = mConfig.imgL.src;
+        }
+        linkImgHtml = "<img id=" + mConfig.IMGPRE + xyzKey +" src=" + xyzPath + " align=absbottom " + xyzScript + " " + xyzStyle + ">";
+
+      }
+
+      /** 生成子<Table>的视图的代码 */
+        var nodeHtml = [];
+        var trHeight = "";
+        if (mConfig.trHeight!=null) {
+            trHeight = "style='height:" + mConfig.trHeight + "'";
+        }
+
+        nodeHtml.push("<table width=100% cellspacing=0 cellpadding=0><tr " + trHeight + ">");
+        nodeHtml.push(padHtml);
+        nodeHtml.push("<td>");
+        nodeHtml.push(linkImgHtml);
+        nodeHtml.push("</td><td>");
+        nodeHtml.push(imgHtml);
+        nodeHtml.push("</td><td width=100% id=");
+        nodeHtml.push(mConfig.NAMEPRE);
+        nodeHtml.push(mNode.key);
+        nodeHtml.push(" ");
+        nodeHtml.push(mConfig.nameScript(mNode.key));
+        nodeHtml.push(" class=nodeName>");
+        if (_nodeRenderFct!=null) {
+            nodeHtml.push(_nodeRenderFct(mNode));
+        }else {
+            nodeHtml.push(mNode.name);
+        }
+        nodeHtml.push("</td></tr></table>");
+        nodeHtml = nodeHtml.join("");
+
+
+			var levelHtml = [];
+			levelHtml.push("<span id=");
+			levelHtml.push(mConfig.PRE);
+			levelHtml.push(mNode.key);
+			levelHtml.push(" class=TreeNode level=");
+			levelHtml.push(nodeLevel);
+			levelHtml.push(">");
+			levelHtml.push(nodeHtml);
+			levelHtml.push("</span>");
+      levelHtml = levelHtml.join("");
+
+      domParent.insertAdjacentHTML("beforeEnd", levelHtml);
+
+      /** 激活当鼠标移至上方时，颜色的变化 */
+      var d = getName(mNode.key);
+      if (d==null) {
+        return;
+      }
+      StyleUtil.activeOverColor(d, mConfig.overNodeColor);
+      paintNode(getDom(mNode.key), xmlNode);
+    }
+
+  }
+
+  /**
+   * 用户点选中一个可展开或者收缩的节点
+   * @param sKey 节点的索引值
+   * @return void
+   */
+  function expandNode(sKey) {
+    if (!objPM.isRunable())
+      return;
+
+    var domObj = getDom(sKey);
+
+    if (domObj==null) {
+      return;
+    }
+
+    /**
+     * 修改图标的视图
+     */
+    var bOpen = updateImg(sKey);
+
+    if (!bOpen) { //关闭操作
+      closeNode(sKey);
+      autoHeightCheck();
+      if (_bCheckWhenLoaded) { //由程序来触发这个检查
+        rebuildChain(sKey);
+        checkLinkImg(sKey);
+      }
+      return;
+    }
+
+    //读取操作，先查看是否已经加载这个子，如果没有才加载，如果有直接显示
+    if (hmLoadedNodes.get(sKey)!=null) {
+      openNode(sKey);
+      autoHeightCheck();
+      return;
+    }
+
+    //调用外部方法
+    if (_nodeOpenFct!=null) {
+      _nodeOpenFct(sKey, hmNodes.get(sKey));
+    }
+
+    /**
+     * 重新获得链表的状态
+     */
+    rebuildChain(sKey);
+
+    loadNode(domObj, sKey)
+  }
+
+  /**
+   * 更新视图的图片
+   * @param sKey 唯一索引
+   * @return boolean 是否展开操作，否表示是关闭操作
+   */
+  function updateImg(sKey) {
+    var domObj = getDom(sKey);
+    var domLinkImg = document.getElementById(mConfig.IMGPRE + "L" + sKey);
+    var domNodeImg = document.getElementById(mConfig.IMGPRE + "N" + sKey);
+
+    //先处理连接位置
+    var bType = false;
+    if (domLinkImg.src==mConfig.imgLminus.src) { // L-
+      domLinkImg.src = mConfig.imgLplus.src;
+      bType = false;
+    }else if (domLinkImg.src==mConfig.imgLplus.src) { // L+
+      domLinkImg.src = mConfig.imgLminus.src;
+      bType = true;
+    }else if (domLinkImg.src==mConfig.imgTminus.src) { // T-
+      domLinkImg.src = mConfig.imgTplus.src;
+      bType = false;
+    }else if (domLinkImg.src==mConfig.imgTplus.src) { // T+
+      domLinkImg.src = mConfig.imgTminus.src;
+      bType = true;
+    }
+
+    //子图片处理
+    if (domNodeImg!=null) { //如果使用NONE属性时这个会为空
+        if (domNodeImg.src==mConfig.imgNodeA.src) {
+          domNodeImg.src = mConfig.imgNodeAO.src;
+        }else if (domNodeImg.src==mConfig.imgNodeAO.src) {
+          domNodeImg.src = mConfig.imgNodeA.src;
+        }
+    }
+    return bType;
+  }
+
+  /**
+   * 关闭一个节点
+   * @param sKey 节点的标识
+   */
+  this.closeNode = closeNode;
+
+  function closeNode(sKey) {    
+    var vChildNodes = lookupChilds(sKey);
+    for (var i=0,len=vChildNodes.length; i<len; i++) {
+      vChildNodes[i].style.display = "none";
+    }
+    //把这个标记加入至索引，表示是加载过但被隐藏了
+    hmLoadedNodes.put(sKey, true);
+
+    //调用外部方法
+    if (_nodeCloseFct!=null) {
+      _nodeCloseFct(sKey, hmNodes.get(sKey));
+    }
+  }
+
+  /**
+   * 程序外部调用的关闭一个节点
+   */
+  this.doCloseNode = function($k) {
+    var bClose = hmLoadedNodes.get($k);
+    if (bClose==null) {
+      return;
+    }
+    if (!bClose) {
+      updateImg($k);
+      closeNode($k);
+    }
+  };
+
+  /**
+   * 程序外部调用打开一个节点
+   */
+  this.doOpenNode = function($k) {
+    var bClose = hmLoadedNodes.get($k);
+    if (bClose) {
+      updateImg($k);
+      openNode($k);
+    }else {
+      expandNode($k);
+    }
+  };
+
+  /**
+   * 打开一个节点
+   * @param sKey 节点的标识
+   */
+  this.openNode = openNode;
+
+  function openNode(sKey) {
+    var vChildNodes = lookupChilds(sKey);
+   	for (var i=0,len=vChildNodes.length; i<len; i++) {
+      vChildNodes[i].style.display = "";
+    }
+    //把这个标记加入至索引，表示是加载过但被隐藏了
+    hmLoadedNodes.put(sKey, false);
+    //调用外部方法
+    if (_nodeOpenFct!=null) {
+      _nodeOpenFct(sKey, hmNodes.get(sKey));
+    }
+  }
+
+  /**
+   * 某个节点是否已经加载过
+   */
+  this.isNodeLoaded = isNodeLoaded;
+
+  function isNodeLoaded($nodeId) {
+    return hmNodes.get($nodeId)!=null;
+  };
+
+  /**
+   * 该节点是否当前正被点选的节点
+   */
+  this.isSelectingNode = isSelectingNode;
+
+  function isSelectingNode($nodeId) {
+    return _lastClickNode==hmNodes.get($nodeId);
+  };
+
+  var _bAsyn = true; //默认都是以异步来操作，但在特殊的时候如自动展开某个深度的节点时需要是同步
+  /**
+   * 根据全地址的语法 AAA.BBB.CCC 来展开树
+   */
+  this.expandByPathSyntax = expandByPathSyntax;
+
+  function expandByPathSyntax($fullPath) {
+      
+    var paths = $fullPath.split(".");
+    var nodeKey = null;
+    var bClose = null;
+    var self = paths.pop(); //自己是不用处理的      
+    for (var i=0; i<paths.length; i++) {
+      nodeKey = paths[i];
+      bClose = hmLoadedNodes.get(nodeKey);      
+      if (bClose==null) { //该节点还没有加载
+        _bAsyn = false;        
+        expandNode(nodeKey);
+        _bAsyn = true;
+      }else { //已经加载了该节点
+        if (bClose) {
+          updateImg(nodeKey);
+          openNode(nodeKey);
+        }
+      }
+    }
+    if (self=="") {
+      return;
+    }
+    clickNode(self, true);
+  };
+
+  /**
+   * 获得新的链表
+   * @param sKey 用于构建其父链表的对象
+   */
+  function rebuildChain(sKey) {
+    hmLevelChain.empty();
+    var domParent = getDom(sKey);
+
+    do {
+      var key = parseKey(domParent.id);
+      var level = domParent.level;
+      hmLevelChain.put(level, hmLevels.get(key));
+    }while ((domParent = lookupParent(parseKey(domParent.id)))!=null)
+  }
+
+  /**
+   * 获得一个父亲，如果已经到了最高层的父亲，就返回null
+   * @param sKey 唯一标识
+   * @return domObj
+   */
+  function lookupParent(sKey) {
+    var domSelf = getDom(sKey);
+    var domParent = domSelf.parentElement;
+    if (domParent.level==-1)
+      return null;
+    return domParent;
+  }
+
+  //外部指明要执行该方法，如同一树被重复调用时，异步处理需要即时清理时请使用该方法
+  this.destroy = function() {
+    if (_XmlLD!=null) {
+      _XmlLD.destroy();
+    }
+  };
+
+  this.getParent = getParent;
+
+  function getParent($key) {
+    var dom = lookupParent($key);
+    if (dom==null) {
+      return null;
+    }
+    var sKey = parseKey(dom.id);
+    return hmNodes.get(sKey);
+  };
+
+  this.getNodeModel = function getNodeModel(sKey) {
+    return hmNodes.get(sKey);
+  };
+
+  /**
+   * 查找子对象集合
+   * @param sKey 唯一标识
+   * @return Collection dom的集合
+   */
+  function lookupChilds(sKey) {
+    var domObj = getDom(sKey);
+    var vTmp = [];
+    for (var i=1, len=domObj.children.length; i<len; i++) {
+      vTmp.push(domObj.children[i]);
+    }
+    return vTmp;
+  }
+
+
+  
+  //获得某个节点的子节点
+  this.getChildsModel = function getChildsModel(sKey) {
+    var childs = lookupChilds(sKey);
+    var ret = [];
+    for (var i=0; i<childs.length; i++) {
+      var domId = childs[i].getAttribute("id");
+      var k = parseKey(domId);
+      ret.push(hmNodes.get(k));
+    }
+    return ret;
+  };
+
+  /**
+   * 获得一个节点下的所有子节点，只取已经读取的模型，未加载的不处理
+   */
+  this.getAllChilds = function getAllChilds(sKey) {
+    var childs = lookupChilds(sKey);
+    var ret = [];
+    for (var i=0; i<childs.length; i++) {
+      var domId = childs[i].getAttribute("id");
+      var k = parseKey(domId);
+      ret.push(hmNodes.get(k));
+      var subChilds = getAllChilds(k);
+      if (subChilds.length!=0) {
+        for (var j=0; j<subChilds.length; j++) {
+          ret.push(subChilds[j]);
+        }
+      }
+    }
+    return ret;
+  };
+
+	var reg = new RegExp(mConfig.PRE + "(.*)");
+  /**
+   * 解析出唯一标识
+   * @sId
+   */
+  this.parseKey = function parseKey(sId) {
+    return sId.match(reg)[1];
+  }
+
+  /**
+   * 根据一个节点的xml解析成一个Javascript使用的模型
+   * @param xdomElement Xml的dom对象
+   * @return mNode 初始化时确定使用的模型
+   */
+  function getModel(xdomElement, nodeLevel) {
+    var mNode = new TreeNodeModel();
+    mNode.key = xdomElement.getAttribute("key");
+  	mNode.name = xdomElement.getAttribute("name");
+  	mNode.hasChild = xdomElement.getAttribute("hasChild");
+  	mNode.url = xdomElement.getAttribute("url");
+  	mNode.icon = xdomElement.getAttribute("icon");
+  	mNode.open = xdomElement.getAttribute("open");
+  	mNode.level = nodeLevel;
+    mNode.description = xdomElement.getAttribute("description");
+    return mNode;
+  }
+
+
+
+  /**
+   * 获得Dom对象
+   * @param sKey 唯一标识
+   * @return domObj
+   */
+  this.getDom = getDom;
+
+  function getDom(sKey) {
+    return document.getElementById(mConfig.PRE + sKey);
+  }
+
+  /**
+   * 获得显示正在加载的对象
+   * @param sKey 唯一标识
+   * @return domObj
+   */
+  function getLoad(sKey) {
+    return document.getElementById(mConfig.LOADPRE + sKey);
+  }
+
+  /**
+   * 获得显示name的Dom节点
+   * @param sKey 唯一标识
+   * @return domObj
+   */
+  this.getName = getName;
+
+  function getName(sKey) {
+    return document.getElementById(mConfig.NAMEPRE + sKey);
+  }
+
+  /**
+   * 获得名称前的T I L图标
+   */
+  function getNameImg(sKey) {
+    var d = getName(sKey);
+    return d.previousSibling.previousSibling.children[0];
+  }
+
+} //JTree 类结束
+
+//------------------------------------------------------------------
+/**
+ * 进程管理帮助类
+ */
+function ProcessManager(mConfig) {
+
+  this.register = register;
+  this.update = update;
+  this.getProcess = getProcess;
+  this.isRunable = isRunable;
+
+  var hmPool = new HashMap();
+  var objPathUtil = new TreePathUtil(mConfig);
+
+  /**
+   * 检查是否允许操作
+   * @return
+   */
+  function isRunable(sKey) {
+    /** 不允许同时点选过多的节点操作 */
+    if (hmPool.size()>=mConfig.maxPoolSize) {
+      alert(mConfig.errorMaxPool);
+      return false;
+    }
+
+    /** 同一地址正在进行中 */
+    if (hmPool.get(sKey)!=null) {
+      alert(mConfig.errorThreadRuning);
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * 将一个进程登记至管理器中
+   * @param sKey 进程关键字
+   * @param domObj 操作对象，在操作完成时，会返回给控制类
+   * @return boolean
+   */
+  function register(sKey, domObj) {
+    if (!isRunable(sKey))
+      return false;
+
+    hmPool.put(sKey, domObj);
+    return true;
+  }
+
+  /**
+   * 获得进程的操作对象
+   * @return domObj
+   */
+  function getProcess(sKey) {
+    return hmPool.get(sKey);
+  }
+
+  /**
+   * public 实现观察者的方法，删除进程
+   * @param oXml 读取控制类
+   * @param sKey 线程关键字
+   * @return void
+   */
+  function update(oXml, sLoadPath) {
+    var sKey = objPathUtil.parseKey(sLoadPath);
+    unRegister(sKey);
+  }
+
+  /**
+   * private 取消一个进程
+   * @param sKey 进程序关键字
+   * @return void
+   */
+  function unRegister(sKey) {
+    hmPool.remove(sKey);
+  }
+}//ProcessManager结束
+
+
+//------------------------------------------------------------------
+/**
+ * 地址相互转换类
+ */
+function TreePathUtil(mConfig) {
+
+  this.buildPath = buildPath;
+  this.parseKey = parseKey;
+  this.parseType = parseType;
+
+  var reg = /^.*[\?|\&]key\=([^\&]*)/;
+  var regType = /^.*[\?|\&]type\=([^\&]*)/;
+  /**
+   * public 创建读取的地址
+   * @param sKey key值
+   * @param iLevel 层数
+   * @return 真正的读取地址
+   */
+  function buildPath(sKey, iLevel, iType) {
+    if (iLevel==null)
+      iLevel = 1;
+
+    if (iType==null)
+      iType = 1;
+
+		sLoadPath = "";
+		if (mConfig.src.indexOf("?")!=-1) {
+			sLoadPath = mConfig.src + "&key=" + sKey + "&level=" + iLevel + "&type=" + iType ;
+		}else {
+      sLoadPath = mConfig.src + "?key=" + sKey + "&level=" + iLevel + "&type=" + iType ;
+  	}
+    return sLoadPath;
+  }
+
+  /**
+   * public 从地址中解析出key的关键字
+   * @param sLoadPath
+   */
+  function parseKey(sLoadPath) {
+    var sKey = sLoadPath.match(reg)[1];
+    return sKey;
+  }
+
+  /**
+   * 解析出地址综合的sType
+   * @param sLoadPath 地址
+   * @return type
+   */
+  function parseType(sLoadPath) {
+    var sType = sLoadPath.match(regType)[1];
+    return sType;
+
+  }
+}
+
+function FatherTree() {
+	/**
+	 * component framework must implement method
+	 */
+	var tree = null;
+	var dom = null;
+	this.init = init;
+
+    function init($dom) {
+	    dom = $dom;
+		var src = dom.getAttribute("tt.src");
+		var instance = dom.getAttribute("tt.instance");
+		var noNodeLine = "true"==dom.getAttribute("tt.noNodeLine");
+		var trHeight = dom.getAttribute("tt.trHeight");
+        var config = null;
+        if (typeof(window.JTreeModel)!="undefined") {
+          config = new JTreeModel(instance, noNodeLine);
+        }else {
+          config = new JTreeDefault(instance, noNodeLine);
+        }
+		config.src = src;
+		config.trHeight = trHeight;
+		tree = new JTree(config);
+		tree.setInstanceName(instance, tree);
+		eval("window." + instance + "=tree");
+
+		dom.setAttribute("id", config.PRE + "0");
+		dom.setAttribute("level", "-1");
+        tree.initNode(dom);
+		if (dom.getAttribute("tt.lazy")==null) {
+		  var ran = Math.random() * 300 + 100;
+		  setTimeout(loadTree, ran);
+		}else {
+
+		}
+	};
+
+	this.loadTree = loadTree;
+
+    function loadTree() {
+      tree.loadNode(dom, 0, "2", "1");
+	}
+}
+
+_JUICECLASSES['FatherTree'] = FatherTree;
+]]></scripts>
