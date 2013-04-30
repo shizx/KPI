@@ -27,6 +27,9 @@ public class BaseAction  extends ActionSupport {
 	
 	private boolean isNew;
 	
+	
+	
+	
 	/**
 	 * @return the isNew
 	 */
