@@ -85,4 +85,32 @@
            <rtexprvalue>true</rtexprvalue>
        </attribute>
    </tag>
+   
+   <!-- 缩略文字 -->
+   <tag>
+   		<name>shortenText</name>
+   		<tag-class>com.zuyue.tag.ShortenTextTag</tag-class>
+   		<body-content>empty</body-content>
+   		<attribute>
+           <!-- 需要缩略的字符串 -->
+           <name>text</name>
+           <required>true</required>
+           <fragment>false</fragment>
+           <rtexprvalue>true</rtexprvalue>
+       </attribute>
+       <attribute>
+           <!-- 选取的长度 -->
+           <name>length</name>
+           <required>true</required>
+           <fragment>false</fragment>
+           <rtexprvalue>true</rtexprvalue>
+       </attribute>
+       <attribute>
+           <!-- 多余字符串替代的文字 ,默认为...-->
+           <name>suffix</name>
+           <required>false</required>
+           <fragment>false</fragment>
+           <rtexprvalue>true</rtexprvalue>
+       </attribute>
+   </tag>
 </taglib>

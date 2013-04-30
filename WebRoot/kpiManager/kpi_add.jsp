@@ -21,8 +21,8 @@
 
 
 					<form name="addPkiForm" id="addUserForm" method="post"	action="kpiManager!add">
-						<input type="text" name="isNew" value="${isNew }" />
-						<input type="text" name="kpiInfo.kpiId" value="${kpiInfo.kpiId }" />
+						<input type="hidden" name="isNew" value="${isNew }" />
+						<input type="hidden" name="kpiInfo.kpiId" value="${kpiInfo.kpiId }" />
 						<table width="100%">
 							<col class=P_LB>
 							<col class=P_NL>
