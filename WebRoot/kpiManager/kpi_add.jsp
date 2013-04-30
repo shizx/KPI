@@ -62,7 +62,7 @@
                                 </td>
                                 <td>
                                     <textarea name="kpiInfo.aim" class="ip_textarea"
-                                              tt.require=true maxlength=100 tt.comment="目的" style=""><s:property value="kpiInfo.aim"/></textarea>
+                                              tt.require=true maxlength=200 tt.comment="目的" style=""><s:property value="kpiInfo.aim"/></textarea>
                                 </td>
                             </tr>
 							<tr>
@@ -71,7 +71,7 @@
 								</td>
 								<td>
                                     <textarea name="kpiInfo.definition" class="ip_textarea"
-                                              tt.require=true maxlength=100 tt.comment="定义" style=""><s:property value="kpiInfo.definition"/></textarea>
+                                              tt.require=true maxlength=200 tt.comment="定义" style=""><s:property value="kpiInfo.definition"/></textarea>
 								</td>
 							</tr>
 							
@@ -81,7 +81,7 @@
 								</td>
 								<td>
                                     <textarea name="kpiInfo.formulaDes" class="ip_textarea"
-                                              tt.require=true maxlength=100 tt.comment="公式" style=""><s:property value="kpiInfo.formulaDes"/></textarea>
+                                              tt.require=true maxlength=200 tt.comment="公式" style=""><s:property value="kpiInfo.formulaDes"/></textarea>
 								</td>
 							</tr>
 

@@ -61,8 +61,16 @@
             		selectedValue="${type}" />
 			</td>
             <td><s:property value="unit" /></td>
-            <td><z:shortenText text="${formulaDes }" length="20"/></td>
-            <td><z:shortenText text="${definition }" length="20"/></td>
+            <td>
+            	<span title="${formulaDes }">
+            		<z:shortenText text="${formulaDes }" length="20"/>
+            	</span>
+            </td>
+            <td>
+            	<span title="${definition }">
+            		<z:shortenText text="${definition }" length="20"/>
+            	</span>
+            </td>
             <td>${aim }</td>
 
             <td align="center">

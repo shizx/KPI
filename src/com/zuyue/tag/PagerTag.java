@@ -19,7 +19,7 @@ public class PagerTag extends TagSupport {
 		this.pager = pager;
 	}
 	
-	private String nameSpace;
+	private String nameSpace = "";
 
 	public String getNameSpace() {
 		return nameSpace;

@@ -2,6 +2,8 @@ package com.zuyue.action;
 
 import com.zuyue.model.KPIInfo;
 import com.zuyue.pager.Pager;
+import com.zuyue.pager.Pager.OrderType;
+import com.zuyue.pager.impl.PagerSimple;
 import com.zuyue.service.KpiService;
 
 import javax.annotation.Resource;
@@ -22,15 +24,49 @@ public class KpiManagerAction extends BaseAction {
      * @return
      */
 	public String kpiList() {
-        setPager(kpiService.findByPager(null));
+		
+		setPagerData();
+
 		return LIST;
 	}
 	
 	public String kpiValueList() {
-        setPager(kpiService.findByPager(null));
+		
+		setPagerData();
+		
 		return LIST;
-	}
+	}    
 
+    @Override
+    public String add() {
+    	if (this.getIsNew()) {
+    		kpiService.add(this.getKpiInfo());
+    	} else {
+    		kpiService.edit(this.getKpiInfo());
+    	}
+        return this.kpiValueList();
+    }
+    
+    public String forwardEdit() {
+    	setKpiInfo(kpiService.get(kpiInfo.getKpiId()));    	
+    	return super.forwardEdit();
+    }
+    
+    public String delete() {
+    	kpiService.delete(kpiInfo.getKpiId());
+    	return this.kpiList();
+    }
+    
+    /**
+     * 设置pager对象，以便前台能获取数据
+     */
+    private void setPagerData() {
+    	Pager<KPIInfo> p = new PagerSimple<KPIInfo>();
+		p.setOrderBy("kpiOrder");
+		p.setOrderType(OrderType.asc);
+        setPager(kpiService.findByPager(p));
+    }    
+    
     public KpiService getKpiService() {
         return kpiService;
     }
@@ -53,25 +89,5 @@ public class KpiManagerAction extends BaseAction {
 
     public void setKpiInfo(KPIInfo kpiInfo) {
         this.kpiInfo = kpiInfo;
-    }
-
-    @Override
-    public String add() {
-    	if (this.getIsNew()) {
-    		kpiService.add(this.getKpiInfo());
-    	} else {
-    		kpiService.edit(this.getKpiInfo());
-    	}
-        return this.kpiValueList();
-    }
-    
-    public String forwardEdit() {
-    	setKpiInfo(kpiService.get(kpiInfo.getKpiId()));    	
-    	return super.forwardEdit();
-    }
-    
-    public String delete() {
-    	kpiService.delete(kpiInfo.getKpiId());
-    	return this.kpiList();
     }
 }

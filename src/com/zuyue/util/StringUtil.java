@@ -984,17 +984,7 @@ public class StringUtil {
 		}
 
 		if (s.length() > length) {
-			for (int j = length; j >= 0; j--) {
-				if (Character.isWhitespace(s.charAt(j))) {
-					length = j;
-
-					break;
-				}
-			}
-
-			String temp = s.substring(0, length);
-
-			s = temp.concat(suffix);
+			return s.substring(0,length).concat(suffix);
 		}
 
 		return s;
