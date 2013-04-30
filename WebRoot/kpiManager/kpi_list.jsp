@@ -22,7 +22,9 @@
         	document.location = "forwardEdit!forwardEdit.action?kpiInfo.kpiId=" + id;
         }
         function doDelete(id) {
-        	document.location = "delete!delete.action?kpiInfo.kpiId=" + id;
+        	if (confirm("确定要删除该记录吗？")) {
+        		document.location = "delete!delete.action?kpiInfo.kpiId=" + id;
+        	}        	
         }
     </script>
 </head>

@@ -57,12 +57,21 @@ public class KpiManagerAction extends BaseAction {
 
     @Override
     public String add() {
-        kpiService.add(this.getKpiInfo());
+    	if (this.getIsNew()) {
+    		kpiService.add(this.getKpiInfo());
+    	} else {
+    		kpiService.edit(this.getKpiInfo());
+    	}
         return this.kpiValueList();
     }
     
     public String forwardEdit() {
     	setKpiInfo(kpiService.get(kpiInfo.getKpiId()));    	
     	return super.forwardEdit();
+    }
+    
+    public String delete() {
+    	kpiService.delete(kpiInfo.getKpiId());
+    	return this.kpiList();
     }
 }

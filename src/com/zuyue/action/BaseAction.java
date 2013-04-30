@@ -27,9 +27,6 @@ public class BaseAction  extends ActionSupport {
 	
 	private boolean isNew;
 	
-	
-	
-	
 	/**
 	 * @return the isNew
 	 */
@@ -64,9 +61,10 @@ public class BaseAction  extends ActionSupport {
 		return EDIT;
 	}
 	
-	public String edit() {
-		return LIST;
+	public String delete() {
+		return this.list();
 	}
+	
 		
 	// 获取Attribute
 	public Object getAttribute(String name) {

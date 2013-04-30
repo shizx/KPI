@@ -22,6 +22,7 @@
 
 					<form name="addPkiForm" id="addUserForm" method="post"	action="kpiManager!add">
 						<input type="text" name="isNew" value="${isNew }" />
+						<input type="text" name="kpiInfo.kpiId" value="${kpiInfo.kpiId }" />
 						<table width="100%">
 							<col class=P_LB>
 							<col class=P_NL>
@@ -86,7 +87,7 @@
 
                             <tr>
                                 <td>
-                                    维度：
+                                   	 维度：
                                 </td>
                                 <td>
                                     <z:selection selectionMap="<%=SelectConst.KPIINFO_DIMENSION %>"
@@ -97,7 +98,7 @@
 
                             <tr>
                                 <td>
-                                    类型：
+                                                                                                类型：
                                 </td>
                                 <td>
                                 	<z:selection selectionMap="<%=SelectConst.KPIINFO_TYPE %>"
@@ -108,7 +109,7 @@
 
                             <tr>
                                 <td>
-                                    指标录入方式：
+                                                                                                 指标录入方式：
                                 </td>
                                 <td>
                                     <%--<input type="radio" value="N" id="char" name="kpiInfo.isRequiredNum"><label for="char">文字</label>--%>
