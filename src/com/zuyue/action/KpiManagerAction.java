@@ -48,7 +48,8 @@ public class KpiManagerAction extends BaseAction {
     }
     
     public String forwardEdit() {
-    	setKpiInfo(kpiService.get(kpiInfo.getKpiId()));    	
+    	KPIInfo ki = kpiService.get(kpiInfo.getKpiId());
+    	setKpiInfo(ki);    	
     	return super.forwardEdit();
     }
     
