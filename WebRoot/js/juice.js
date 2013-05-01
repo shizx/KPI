@@ -1,5 +1,5 @@
 /**
-b * GoodBy Javascript!
+ * GoodBy Javascript!
  * @Author: TANTOM
  */
 
@@ -1349,7 +1349,7 @@ function __loadScript($class, $returnType) {
         if (typeof(opener)!="undefined") {
           try {
             if (typeof(opener.top._XML_SCRIPTS)!="undefined") {
-              script = opener.top._XML_SCRIPTS[$class];
+              script = opener.top._XML_SCRIPTS[$class]; 
             }
           }catch(e) {
           }

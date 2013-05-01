@@ -217,12 +217,12 @@ public class KPIInfo extends BaseModel{
         this.definition = definition;
     }
 
-    public String getRequiredNum() {
+    public String getIsRequiredNum() {
         return isRequiredNum;
     }
 
     @Column(name="isRequiredNum",length =1)
-    public void setRequiredNum(String requiredNum) {
-        isRequiredNum = requiredNum;
+    public void setIsRequiredNum(String isRequiredNum) {
+        this.isRequiredNum = isRequiredNum;
     }
 }

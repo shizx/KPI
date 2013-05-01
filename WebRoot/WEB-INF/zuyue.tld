@@ -65,6 +65,48 @@
        </attribute>
    </tag>
    
+   <!-- 根据传入的MAP值，来构建radio或者checkbox的HTML -->
+   <tag>
+       <name>choice</name>
+       <tag-class>com.zuyue.tag.ChoiceTag</tag-class>
+       <body-content>empty</body-content>
+       <attribute>
+           <!-- 选项框的map对象 -->
+           <name>choiceMap</name>
+           <required>false</required>
+           <fragment>false</fragment>
+           <rtexprvalue>true</rtexprvalue>
+       </attribute>
+       <attribute>
+           <!-- 选项框的名称 -->
+           <name>choiceName</name>
+           <required>true</required>
+           <fragment>false</fragment>
+           <rtexprvalue>true</rtexprvalue>
+       </attribute>
+       <attribute>
+           <!-- 选中的值，如果是多个选中的值，则用,隔开 -->
+           <name>choicedValue</name>
+           <required>false</required>
+           <fragment>false</fragment>
+           <rtexprvalue>true</rtexprvalue>
+       </attribute>
+       <attribute>
+           <!-- 默认值 -->
+           <name>defalutValue</name>
+           <required>false</required>
+           <fragment>false</fragment>
+           <rtexprvalue>true</rtexprvalue>
+       </attribute>
+       <attribute>
+           <!-- 类型，默认为radio -->
+           <name>type</name>
+           <required>false</required>
+           <fragment>false</fragment>
+           <rtexprvalue>true</rtexprvalue>
+       </attribute>       
+   </tag>
+   
    <!-- 根据Map的值展示出所选的值对应的文本 -->
    <tag>
    		<name>displayText</name>
