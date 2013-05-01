@@ -26,6 +26,10 @@
         		document.location = "delete!delete.action?kpiInfo.kpiId=" + id;
         	}        	
         }
+        
+        function doAddValidatorFormula(id) {
+        	alert("为"+id+"添加验证公式")
+        }
     </script>
 </head>
 
@@ -63,12 +67,12 @@
             <td><s:property value="unit" /></td>
             <td>
             	<span title="${formulaDes }">
-            		<z:shortenText text="${formulaDes }" length="20"/>
+            		<z:shortenText text="${formulaDes }" length="18"/>
             	</span>
             </td>
             <td>
             	<span title="${definition }">
-            		<z:shortenText text="${definition }" length="20"/>
+            		<z:shortenText text="${definition }" length="18"/>
             	</span>
             </td>
             <td>${aim }</td>
@@ -76,6 +80,7 @@
             <td align="center">
             	<a href="####" onclick="doEdit('${kpiId}')">修改</a>
             	<a href="####" onclick="doDelete('${kpiId}')">删除</a>
+            	<a href="####" onclick="doAddValidatorFormula('${kpiId}')">添加验证公式</a>
             </td>
 
         </tr>
