@@ -1,13 +1,12 @@
-<?xml version="1.0" encoding="GB2312"?>
+<?xml version="1.0" encoding="gbk"?>
 <scripts><![CDATA[
 /**
- * æäº¤ä¸€ä¸ªæŒ‡å®šçš„è¡¨å•
- * $formNameå¯ä»¥æ˜¯åå­—ä¹Ÿå¯ä»¥æ˜¯domå¯¹è±¡
+ * Ìá½»Ò»¸öÖ¸¶¨µÄ±íµ¥
+ * $formName¿ÉÒÔÊÇÃû×ÖÒ²¿ÉÒÔÊÇdom¶ÔÏó
  */
 function __xmlpostCore($formName, $nc) {
-
   if (window._formPostingInProcess) {
-    __alert("æœ‰æ“ä½œæ­£åœ¨è¿›è¡Œä¸­ï¼Œè¯·ç¨åŽ");
+    __alert("ÓÐ²Ù×÷ÕýÔÚ½øÐÐÖÐ£¬ÇëÉÔºó");
     return false;
   }
   var _domForm = null;
@@ -98,7 +97,7 @@ function __xmlpostCore($formName, $nc) {
       try {
         _domForm.submit();
       }catch(e) {
-        alert("è¡¨å•æ•°æ®ä¸æ­£ç¡®ï¼Œè¯·æ£€æŸ¥æ•°æ®æ˜¯å¦æ­£ç¡®:ä¾‹å¦‚ï¼šæä¾›çš„é™„ä»¶ä¸æ˜¯æ–‡ä»¶ç±»åž‹");
+        alert("±íµ¥Êý¾Ý²»ÕýÈ·£¬Çë¼ì²éÊý¾ÝÊÇ·ñÕýÈ·:ÀýÈç£ºÌá¹©µÄ¸½¼þ²»ÊÇÎÄ¼þÀàÐÍ");
         toPost = false;
         window._formPostingInProcess = false;
         __unwait(_waitId);
@@ -110,12 +109,12 @@ function __xmlpostCore($formName, $nc) {
   }
 
   /**
-   * è¡¨å•é€’äº¤æ—¶çš„ç›‘å¬å™¨
+   * ±íµ¥µÝ½»Ê±µÄ¼àÌýÆ÷
    */
   function formListener() {
     if (_domPostFrame.readyState=="complete" && toPost) {
        _domPostFrame.onreadystatechange = new Function("return false;");       
-      //æ£€æŸ¥è¿™ä¸ªé¡µé¢æ˜¯å¦æœ‰æŒ‡å®šéœ€è¦é”å®šçš„æ“ä½œï¼Œå¦‚æžœå‘çŽ°è¿™é‡Œçš„actionSuccessä¸ŽafterSuccesså¸¦æœ‰åœ°å€è·³è½¬å°±é”å®šé¡µé¢
+      //¼ì²éÕâ¸öÒ³ÃæÊÇ·ñÓÐÖ¸¶¨ÐèÒªËø¶¨µÄ²Ù×÷£¬Èç¹û·¢ÏÖÕâÀïµÄactionSuccessÓëafterSuccess´øÓÐµØÖ·Ìø×ª¾ÍËø¶¨Ò³Ãæ
       var name = _domPostFrame.getAttribute("name");
       var actionWin = document.frames[name];
       var afterFct = actionWin.afterSuccess;
@@ -133,7 +132,7 @@ function __xmlpostCore($formName, $nc) {
         if (typeof(actionFct)!="undefined") {
           fctStr = actionFct.toString();
         }
-        //ä½¿ç”¨wopenæ‰“å¼€çš„çª—å£
+        //Ê¹ÓÃwopen´ò¿ªµÄ´°¿Ú
         if (fctStr==null) {
           if (window.opener!=null) {
             if (typeof(afterWFct)!="undefined") {
@@ -157,7 +156,7 @@ function __xmlpostCore($formName, $nc) {
         }
       }      
       __unwait(_waitId);
-      if (!bJump) { //å¼€æ”¾å†æ¬¡æ“ä½œæƒé™
+      if (!bJump) { //¿ª·ÅÔÙ´Î²Ù×÷È¨ÏÞ
         window._formPostingInProcess = false;
       }else {        
         top.__jump(window);

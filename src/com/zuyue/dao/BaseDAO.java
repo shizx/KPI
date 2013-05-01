@@ -1,7 +1,6 @@
 package com.zuyue.dao;
 
 import java.io.Serializable;
-import java.util.List;
 
 import org.hibernate.criterion.DetachedCriteria;
 
