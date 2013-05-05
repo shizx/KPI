@@ -1,18 +1,20 @@
 package com.zuyue.servlet;
 
-import org.dom4j.io.SAXReader;
-import org.dom4j.Document;
-
-import com.zuyue.system.Environment;
-
-import javax.servlet.http.HttpServlet;
-import javax.servlet.ServletException;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.Date;
-import java.util.Properties;
-import java.util.Enumeration;
+import java.util.List;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+
+import org.dom4j.Document;
+import org.dom4j.Node;
+import org.dom4j.io.SAXReader;
+
+import com.zuyue.core.ConfigMgr;
+import com.zuyue.core.ZuyueConfig;
+import com.zuyue.formula.SymbolModel;
+import com.zuyue.system.Environment;
 
 /**
  * 
@@ -48,29 +50,36 @@ public class InitServlet extends HttpServlet {
      *
      * @throws javax.servlet.ServletException
      */
-    public void init() throws ServletException {
+    @SuppressWarnings("unchecked")
+	public void init() throws ServletException {
         try {
             //Thread.sleep(5000);
             /** 初始化所有配置性实例 */
-//            SAXReader reader = new SAXReader();
-//            String applicationsDir = getServletContext().getRealPath("/");
-//            String rootDir = new File(applicationsDir).getParent();
-//            String configDir = rootDir + File.separator + "config";
-
-
-            //File xoffice = new File(configDir + File.separator + "broker.xml");
-            //Document configDocument = reader.read(xoffice);
+            SAXReader reader = new SAXReader();
+            String applicationsDir = getServletContext().getRealPath("/");
+            String classPathName = InitServlet.class.getResource("/").getPath(); 
+            
+            File xoffice = new File(classPathName + File.separator + "zuyue.xml");
+            Document configDocument = reader.read(xoffice);
+            
+            List<Node> symbolNodes = configDocument.selectNodes("/zuyue/symbols/symbol");
+            for (Node node : symbolNodes) {
+            	String symbol = node.getText();
+            	
+            	SymbolModel sm = new SymbolModel();
+            	sm.setSymbol(symbol);
+            	ZuyueConfig.addSymbol(sm);
+            }
 
 //            String appRoot = System.getProperty("app.root");
 //            if (StringUtils.isBlank(appRoot)) {
 //                throw new RuntimeException("请先设置 app.root 目录位置");
 //            }
 
-            //ConfigMgr.setAppRoot(appRoot);
+            ConfigMgr.setAppRoot(applicationsDir);
 
             //设置系统启动时间
             Environment.setApplicationStartTime(new Date());            
-
         } catch (Throwable e) {
             e.printStackTrace();
             throw new RuntimeException("启动失败", e);

@@ -40,9 +40,18 @@
 			<result name="list">/kpiManager/kpi_list.jsp</result>
 			<result name="add">/kpiManager/kpi_add.jsp</result>
 			<result name="edit">/kpiManager/kpi_add.jsp</result>
+			<result name="validtor_list">/kpiManager/kpi_validtor_list.jsp</result>
+			<result name="add_validtors">/kpiManager/kpi_add_validtors.jsp</result>
 		</action>
-		
-
+	</package>
+	
+	<!-- 指标验证信息模块 -->
+	<package name="kpiValidtor" extends="struts-default" namespace="/kpiValidtor">
+		<action name="*" class="com.zuyue.action.FormulaValidtorAction" method="*">
+			<result name="list">/kpiValidtor/kpi_validtor_list.jsp</result>
+			<result name="add">/kpiValidtor/kpi_validtor_add.jsp</result>
+			<result name="edit">/kpiValidtor/kpi_validtor_add.jsp</result>
+		</action>
 	</package>
 
     <!-- 指标值管理 -->

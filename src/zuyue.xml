@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zuyue>
+
+	<!-- 填写指标公式时所需要的符号，符号必须用<![CDATA[  符号  ]]>包含，否则解析会出错 -->
+	<symbols>
+		<symbol><![CDATA[+]]></symbol>
+		<symbol><![CDATA[-]]></symbol>
+		<symbol><![CDATA[*]]></symbol>
+		<symbol><![CDATA[/]]></symbol>
+		<symbol><![CDATA[%]]></symbol>
+		<symbol><![CDATA[(]]></symbol>
+		<symbol><![CDATA[)]]></symbol>
+		<symbol><![CDATA[>]]></symbol>
+		<symbol><![CDATA[<]]></symbol>
+		<symbol><![CDATA[=]]></symbol>
+		<symbol><![CDATA[||]]></symbol>
+	</symbols>
+</zuyue>
