@@ -1,12 +1,13 @@
 package com.zuyue.action;
 
+
+import javax.annotation.Resource;
+
 import com.zuyue.model.KPIInfo;
 import com.zuyue.pager.Pager;
 import com.zuyue.pager.Pager.OrderType;
 import com.zuyue.pager.impl.PagerSimple;
 import com.zuyue.service.KpiService;
-
-import javax.annotation.Resource;
 
 public class KpiManagerAction extends BaseAction {
 
@@ -17,9 +18,9 @@ public class KpiManagerAction extends BaseAction {
 
     private Pager<KPIInfo> pager;
 
-    private KPIInfo kpiInfo;
+    private KPIInfo kpiInfo;  
 
-    /**
+	/**
      * 指标集合
      * @return
      */
@@ -48,8 +49,11 @@ public class KpiManagerAction extends BaseAction {
     }
     
     public String forwardEdit() {
-    	KPIInfo ki = kpiService.get(kpiInfo.getKpiId());
-    	setKpiInfo(ki);    	
+    	   	
+    	KPIInfo kpiInfo = getKiInfo();
+    	
+    	setKpiInfo(kpiInfo);
+    	
     	return super.forwardEdit();
     }
     
@@ -57,6 +61,16 @@ public class KpiManagerAction extends BaseAction {
     	kpiService.delete(kpiInfo.getKpiId());
     	return this.kpiList();
     }
+    
+    
+    /**
+     * 获得指标信息对象
+     * @return
+     */
+    private KPIInfo getKiInfo() {
+    	return kpiService.get(kpiInfo.getKpiId());
+    }
+    
     
     /**
      * 设置pager对象，以便前台能获取数据
@@ -91,4 +105,6 @@ public class KpiManagerAction extends BaseAction {
     public void setKpiInfo(KPIInfo kpiInfo) {
         this.kpiInfo = kpiInfo;
     }
+    
+    
 }

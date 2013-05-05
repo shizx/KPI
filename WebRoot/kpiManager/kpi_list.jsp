@@ -28,7 +28,7 @@
         }
         
         function doAddValidatorFormula(id) {
-        	alert("为"+id+"添加验证公式")
+        	document.location = "<%=contextPath%>/kpiValidtor/list!list.action?kpiInfo.kpiId=" + id;
         }
     </script>
 </head>
@@ -80,7 +80,7 @@
             <td align="center">
             	<a href="####" onclick="doEdit('${kpiId}')">修改</a>
             	<a href="####" onclick="doDelete('${kpiId}')">删除</a>
-            	<a href="####" onclick="doAddValidatorFormula('${kpiId}')">添加验证公式</a>
+            	<a href="####" onclick="doAddValidatorFormula('${kpiId}')">查看验证公式</a>
             </td>
 
         </tr>
