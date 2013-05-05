@@ -155,4 +155,24 @@
            <rtexprvalue>true</rtexprvalue>
        </attribute>
    </tag>
+   
+   <!-- 公式符号 -->
+   <tag>
+	   	<name>symbol</name>
+	   	<tag-class>com.zuyue.tag.SymbolsTag</tag-class>
+	   	<attribute>
+           <!-- onclick事件的名称，将会传当前的符号到该方法 -->
+           <name>clickFunction</name>
+           <required>false</required>
+           <fragment>false</fragment>
+           <rtexprvalue>true</rtexprvalue>
+       </attribute>
+       <attribute>
+           <!-- 样式名称 -->
+           <name>className</name>
+           <required>false</required>
+           <fragment>false</fragment>
+           <rtexprvalue>true</rtexprvalue>
+       </attribute>
+   </tag>
 </taglib>
