@@ -1,6 +1,7 @@
 package com.zuyue.service;
 
 import com.zuyue.model.KPIInfo;
+import com.zuyue.pager.Pager;
 
 /**
  * Created with IntelliJ IDEA.
@@ -10,4 +11,11 @@ import com.zuyue.model.KPIInfo;
  * To change this template use File | Settings | File Templates.
  */
 public interface KpiService extends BaseService<KPIInfo> {
+	
+	/**
+	 * 根据KPI名称查找kpi的pager信息
+	 * @param kpiName
+	 * @return
+	 */
+	public Pager<KPIInfo> findPagerByKpiName(String kpiName);
 }

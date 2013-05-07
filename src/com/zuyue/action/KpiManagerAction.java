@@ -19,6 +19,10 @@ public class KpiManagerAction extends BaseAction {
     private Pager<KPIInfo> pager;
 
     private KPIInfo kpiInfo;  
+    
+    
+
+	
 
 	/**
      * 指标集合
@@ -63,6 +67,8 @@ public class KpiManagerAction extends BaseAction {
     }
     
     
+    
+    
     /**
      * 获得指标信息对象
      * @return
@@ -105,6 +111,5 @@ public class KpiManagerAction extends BaseAction {
     public void setKpiInfo(KPIInfo kpiInfo) {
         this.kpiInfo = kpiInfo;
     }
-    
-    
+        
 }

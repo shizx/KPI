@@ -78,9 +78,21 @@
 		<action name="generateCompositeReport" class="com.zuyue.action.ReportManagerAction" method="generateCompositeReport">
 			<result name="report">/reportManager/generateCompositeReport.jsp</result>
 		</action>
-		
-		
 	</package>
-	
+	<package name="json" extends="json-default" namespace="/json">
+		<!-- KpiData对应getKpiData -->
+		<action name="*" class="com.zuyue.action.JsonAction" method="*">
+			<result type="json" name="success">
+        		<param name="contentType">
+        			text/html
+        		</param>
+        	</result>
+        	<result type="json" name="error">
+        		<param name="contentType">
+        			text/html
+        		</param>
+        	</result>
+		</action>
+	</package>
 </struts>
 	

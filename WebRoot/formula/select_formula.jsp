@@ -10,11 +10,31 @@
 			}
 			
 			function searchKpiInfo() {
-				alert("查询指标")
+				var kpiName = document.getElementById("kpiInfo.name").value;
+				if ($.trim(kpiName)=="") {
+					//alert("指标名称不能为空");
+					//return;
+				}
+				
+				doLoadKpiInfos(kpiName);
 			}
 			
 			function doClickKpi(id) {
 				alert(id)
+			}
+			
+			$(function(){
+				doLoadKpiInfos();
+			});
+			
+			function doLoadKpiInfos(kpiName) {
+				
+				kpiName = kpiName || "";
+				$.post("<%=contextPath%>/json/KpiData!kpiData.action", { "kpiName": kpiName },
+					function(data){	
+						$("#trHtml").html(data.trHtml);
+						$("#pagerHtml").html(data.pagerHtml);
+					}, "json");
 			}
 		</script>
 		<style type="text/css">
@@ -38,29 +58,19 @@
 	<div>
 		<table>
 			<tr>
-				<td><input type="text" class="ip_text" name="kpiInfo.name' value="${kpiInfo.name }"></td>
+				<td><input type="text" class="ip_text" name="kpiInfo.name" id="kpiInfo.name" value="${kpiInfo.name }"></td>
 				<td><input type="button" value="搜索指标" onclick="searchKpiInfo()" ></td>
 			</tr>
 		</table>		
 	</div>
 	
-	<div>
-		<table style="BORDER: 1px solid;BORDER-COLOR: #cccccc;">
-			<tr class="TBL_A">
-				<td><input type="button" value="营业利润" onclick="doClickKpi('营业利润')" ></td>
-				<td><input type="button" value="营业利润" onclick="doClickKpi('营业利润')" ></td>
-				<td><input type="button" value="营业利润" onclick="doClickKpi('营业利润')" ></td>
-				<td><input type="button" value="营业利润" onclick="doClickKpi('营业利润')" ></td>
-				<td><input type="button" value="营业利润" onclick="doClickKpi('营业利润')" ></td>
-			</tr>
+	<div style="min-height: 50p0x;">
+		<table style="BORDER: 1px solid;BORDER-COLOR: #cccccc;width: 440px;">
 			
-			<tr class="TBL_B">
-				<td><input type="button" value="营业利润" onclick="doClickKpi('营业利润')" ></td>
-				<td><input type="button" value="营业利润" onclick="doClickKpi('营业利润')" ></td>
-				<td><input type="button" value="营业利润" onclick="doClickKpi('营业利润')" ></td>
-				<td><input type="button" value="营业利润" onclick="doClickKpi('营业利润')" ></td>
-				<td><input type="button" value="营业利润" onclick="doClickKpi('营业利润')" ></td>
-			</tr>
+			<tfoot id="trHtml">
+			</tfoot>
+			<tfoot id="pagerHtml">			
+			</tfoot>
 		</table>
 	</div>
 	

@@ -1,11 +1,18 @@
 package com.zuyue.service.impl;
 
-import com.zuyue.dao.KpiDAO;
-import com.zuyue.model.KPIInfo;
-import com.zuyue.service.KpiService;
+import javax.annotation.Resource;
+
+import org.hibernate.criterion.DetachedCriteria;
+import org.hibernate.criterion.Restrictions;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Resource;
+import com.zuyue.dao.KpiDAO;
+import com.zuyue.model.KPIInfo;
+import com.zuyue.pager.Pager;
+import com.zuyue.pager.Pager.OrderType;
+import com.zuyue.pager.impl.PagerSimple;
+import com.zuyue.service.KpiService;
+import com.zuyue.util.Validator;
 
 /**
  * Created with IntelliJ IDEA.
@@ -22,5 +29,21 @@ public class KpiServiceImpl extends BaseServiceImpl<KPIInfo> implements KpiServi
     @Resource
     public void setKpiDAO(KpiDAO kpiDAO) {
         super.setBaseDao(kpiDAO);
+    }
+    
+    
+    public Pager<KPIInfo> findPagerByKpiName(String kpiName) {
+    	Pager<KPIInfo> p = new PagerSimple<KPIInfo>();
+		p.setOrderBy("kpiOrder");
+		p.setOrderType(OrderType.asc);
+		p.setPageSize(20);
+		
+		DetachedCriteria kpiInfoCriteria = DetachedCriteria.forClass(KPIInfo.class, "kpiInfo");;
+		
+		if (Validator.isNotNull(kpiName)) {
+			kpiInfoCriteria.add(Restrictions.like("kpiInfo.name", "%"+kpiName+"%"));
+		}
+		
+		return kpiDAO.findByPager(p, kpiInfoCriteria);
     }
 }
