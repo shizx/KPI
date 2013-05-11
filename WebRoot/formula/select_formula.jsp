@@ -9,14 +9,16 @@
 				alert(symobol)
 			}
 			
-			function searchKpiInfo() {
+			function searchKpiInfo(pageNum) {
+				
+				pageNum = pageNum||1;
 				var kpiName = document.getElementById("kpiInfo.name").value;
 				if ($.trim(kpiName)=="") {
 					//alert("指标名称不能为空");
 					//return;
 				}
 				
-				doLoadKpiInfos(kpiName);
+				doLoadKpiInfos(kpiName,pageNum);
 			}
 			
 			function doClickKpi(id) {
@@ -24,17 +26,21 @@
 			}
 			
 			$(function(){
-				doLoadKpiInfos();
+				searchKpiInfo();
 			});
 			
-			function doLoadKpiInfos(kpiName) {
+			function doLoadKpiInfos(kpiName,pageNum) {
 				
 				kpiName = kpiName || "";
-				$.post("<%=contextPath%>/json/KpiData!kpiData.action", { "kpiName": kpiName },
+				$.post("<%=contextPath%>/json/KpiData!kpiData.action", { "kpiName": kpiName ,"pageNum":pageNum,"t":new Date().getTime()},
 					function(data){	
 						$("#trHtml").html(data.trHtml);
 						$("#pagerHtml").html(data.pagerHtml);
 					}, "json");
+			}
+			
+			function go(pageNum) {
+				searchKpiInfo(pageNum)
 			}
 		</script>
 		<style type="text/css">

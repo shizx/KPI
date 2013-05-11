@@ -3,6 +3,7 @@ package com.zuyue.action;
 import java.util.List;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 
 import net.sf.json.JSONObject;
 
@@ -12,6 +13,7 @@ import com.zuyue.model.KPIInfo;
 import com.zuyue.pager.Pager;
 import com.zuyue.service.KpiService;
 import com.zuyue.util.AjaxUtil;
+import com.zuyue.util.ParamUtil;
 
 /**
  *<p>Title:返回json数据 </p>
@@ -40,9 +42,13 @@ public class JsonAction extends BaseAction {
   
 	public void kpiData() {
 		
-		String kpiName = ServletActionContext.getRequest().getParameter("kpiName");
+		HttpServletRequest request = getRequest();
 		
-        Pager<KPIInfo> pager = kpiService.findPagerByKpiName(kpiName);
+		String kpiName = ParamUtil.get(request, "kpiName","");
+		
+		int pageNum = ParamUtil.get(request, "pageNum", 1);
+		
+        Pager<KPIInfo> pager = kpiService.findPagerByKpiName(kpiName,pageNum);
         
         List<KPIInfo> infos = pager.getElements();
         

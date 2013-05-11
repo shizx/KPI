@@ -10,13 +10,13 @@ import com.zuyue.service.BaseService;
 
 public class BaseServiceImpl<T> implements BaseService<T> {
 
-	private BaseDAO baseDAO;
+	private BaseDAO<T> baseDAO;
 
-	public BaseDAO getBaseDao() {
+	public BaseDAO<T> getBaseDao() {
 		return baseDAO;
 	}
 
-	public void setBaseDao(BaseDAO baseDao) {
+	public void setBaseDao(BaseDAO<T> baseDao) {
 		this.baseDAO = baseDao;
 	}
 	

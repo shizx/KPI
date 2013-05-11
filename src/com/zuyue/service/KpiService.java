@@ -15,7 +15,8 @@ public interface KpiService extends BaseService<KPIInfo> {
 	/**
 	 * 根据KPI名称查找kpi的pager信息
 	 * @param kpiName
+	 * @param pageNum
 	 * @return
 	 */
-	public Pager<KPIInfo> findPagerByKpiName(String kpiName);
+	public Pager<KPIInfo> findPagerByKpiName(String kpiName,int pageNum);
 }
