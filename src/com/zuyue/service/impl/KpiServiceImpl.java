@@ -36,7 +36,7 @@ public class KpiServiceImpl extends BaseServiceImpl<KPIInfo> implements KpiServi
     	Pager<KPIInfo> p = new PagerSimple<KPIInfo>();
 		p.setOrderBy("kpiOrder");
 		p.setOrderType(OrderType.asc);
-		p.setPageSize(2);
+		p.setPageSize(20);
 		p.setCurrentPageNumber(pageNum);
 		
 		DetachedCriteria kpiInfoCriteria = DetachedCriteria.forClass(KPIInfo.class, "kpiInfo");;

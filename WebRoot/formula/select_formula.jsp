@@ -4,9 +4,10 @@
 <html>
 	<head>    
     	<title>选择指标公式</title>
+    	<script src="<%=contextPath %>/js/extend/jquery_textarea.js"></script>
 		<script type="text/javascript">
 			function doClick(symobol) {
-				alert(symobol)
+				doAddFormula(symobol)
 			}
 			
 			function searchKpiInfo(pageNum) {
@@ -21,8 +22,13 @@
 				doLoadKpiInfos(kpiName,pageNum);
 			}
 			
-			function doClickKpi(id) {
-				alert(id)
+			function doClickKpi(id,name) {				
+				doAddFormula(name);
+			}
+			
+			function doAddFormula(text) {
+				$('#formulaTextarea').setCaret(); 
+				$("#formulaTextarea").insertAtCaret(text);
 			}
 			
 			$(function(){
@@ -41,6 +47,10 @@
 			
 			function go(pageNum) {
 				searchKpiInfo(pageNum)
+			}
+			
+			function doClear() {
+				$("#formulaTextarea").val("");
 			}
 		</script>
 		<style type="text/css">
@@ -81,7 +91,10 @@
 	</div>
 	
 	<div>
-		<textarea class="ip_textarea"></textarea>
+		<textarea class="ip_textarea" id="formulaTextarea"></textarea>
+	</div>
+	<div>
+		<input name="clear" type="button" value="清空" onclick="doClear()" />
 	</div>
 	
   	</body>

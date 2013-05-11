@@ -62,7 +62,7 @@ public class JsonAction extends BaseAction {
         	}
         	
         	KPIInfo info = infos.get(i);
-        	sb.append("<td><input type='button' value='"+info.getName()+"' onclick=\"doClickKpi('"+info.getKpiId()+"')\" ></td>");
+        	sb.append("<td><input type='button' value='"+info.getName()+"' onclick=\"doClickKpi('"+info.getKpiId()+"','"+info.getName()+"')\" ></td>");
         	
         	if (i!=0&&(i+1)%TR_SIZE==0) {
         		sb.append("</tr>");
